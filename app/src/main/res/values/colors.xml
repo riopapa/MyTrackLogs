@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
+    <color name="nowDateTime">#03DAC5</color>
+    <color name="startDateTime">#F3CAC5</color>
+    <color name="currInfo">#A3BAA5</color>
+    <color name="trackRoute">#EE00EE</color>
+    <color name="logColorFore">#FF001493</color>
+    <color name="logColorBack">#66736F6E</color>
+    <color name="logBackground">#EAEBED</color>
+    <color name="trackActive">#aa5B4157</color>
+
+</resources>

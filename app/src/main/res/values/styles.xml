@@ -1,0 +1,40 @@
+<resources>
+
+    <!-- Base application theme. -->
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">true</item>
+        <item name="windowNoTitle">false</item>
+        <item name="android:windowFullscreen">false</item>
+    </style>
+
+    <style name="myTimePicker" parent="android:Widget.Material.Light.TimePicker">
+        <item name="android:numbersTextColor">@color/logColorFore</item>
+        <item name="android:numbersInnerTextColor">#3c0d0a</item>
+        <item name="android:numbersSelectorColor">#28F654</item>
+        <item name="android:numbersBackgroundColor">#ff055555</item>
+        <item name="android:colorControlNormal">#3c4d3a</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColorPrimary">#3587c9</item>
+
+    </style>
+
+    <style name="myDatePicker" parent="android:Widget.Material.Light.DatePicker">
+        <item name="android:numbersTextColor">@color/logColorFore</item>
+        <item name="android:numbersInnerTextColor">#0c0d0a</item>
+        <item name="android:numbersSelectorColor">#08F654</item>
+        <item name="android:numbersBackgroundColor">#ff055555</item>
+        <item name="android:colorControlNormal">#cccdca</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColorPrimary">#F107ff</item>
+    </style>
+</resources>

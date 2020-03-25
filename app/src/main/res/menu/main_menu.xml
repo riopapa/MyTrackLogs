@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/setting"
+        android:orderInCategory="100"
+        android:icon="@mipmap/setting"
+        app:showAsAction="always"
+        android:title="show Map" />
+
+    <item
+        android:id="@+id/time_search"
+        android:orderInCategory="100"
+        android:icon="@mipmap/search_time"
+        app:showAsAction="always"
+        android:title="show Map" />
+
+    <item
+        android:id="@+id/log_view"
+        android:orderInCategory="100"
+        android:icon="@mipmap/log_list"
+        app:showAsAction="always"
+        android:title="show Map" />
+
+    <item
+        android:id="@+id/showNowMap"
+        android:orderInCategory="100"
+        android:icon="@mipmap/show_map"
+        app:showAsAction="always"
+        android:title="show Map" />
+
+</menu>
