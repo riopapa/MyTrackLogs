@@ -40,10 +40,7 @@ public class TrackActivity extends AppCompatActivity {
                     long finishTime = cursor.getLong(cursor.getColumnIndex("finishTime"));
                     int meters = cursor.getInt(cursor.getColumnIndex("meters"));
                     int minutes = cursor.getInt(cursor.getColumnIndex("minutes"));
-                    if (meters == 0 || minutes == 0)
-                        databaseIO.trackDelete(startTime);
-                    else
-                        logLocations.add(new LogLocation(startTime, finishTime, meters, minutes));
+                    logLocations.add(new LogLocation(startTime, finishTime, meters, minutes));
                 } while (cursor.moveToNext());
             }
         }
