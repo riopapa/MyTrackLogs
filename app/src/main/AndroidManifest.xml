@@ -5,9 +5,11 @@
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!--    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />-->
 
     <application
         android:allowBackup="true"
@@ -36,6 +38,7 @@
         <activity android:name=".MapActivity" />
         <activity android:name=".TrackActivity" />
         <activity android:name=".SearchActivity" />
+        <service android:name=".NotificationService" />
         <service android:name=".GPSTracker" />
     </application>
 

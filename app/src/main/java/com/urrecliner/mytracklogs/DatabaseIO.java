@@ -9,7 +9,7 @@ import android.widget.Toast;
 import static com.urrecliner.mytracklogs.Vars.mContext;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
-public class DatabaseIO extends SQLiteOpenHelper {
+class DatabaseIO extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "My Tracks.db";
     private static final String TABLE_LOG = "locationLog";
@@ -47,7 +47,7 @@ public class DatabaseIO extends SQLiteOpenHelper {
             dbIO = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put("startTime", startTime);
-        cv.put("finishTime", 0);
+        cv.put("finishTime", startTime);
         cv.put("meters", 0);
         cv.put("minutes", 0);
         dbIO.insert(TABLE_TRACK, null, cv);
@@ -61,7 +61,11 @@ public class DatabaseIO extends SQLiteOpenHelper {
         cv.put("finishTime", finishTime);
         cv.put("meters", meters);
         cv.put("minutes", minutes);
-        dbIO.update(TABLE_TRACK, cv, "startTime = ?", new String[]{String.valueOf(startTime)});
+        try {
+            dbIO.update(TABLE_TRACK, cv, "startTime = ?", new String[]{String.valueOf(startTime)});
+        } catch (Exception e) {
+            utils.log("trackUpdate", "error "+e.toString());
+        }
     }
 
     void trackDelete(long startTime) {
@@ -84,7 +88,11 @@ public class DatabaseIO extends SQLiteOpenHelper {
         cv.put("logTime", logTime);
         cv.put("latitude", latitude);
         cv.put("longitude", longitude);
-        dbIO.insert(TABLE_LOG, null, cv);
+        try {
+            dbIO.insert(TABLE_LOG, null, cv);
+        } catch (Exception e) {
+            utils.log("logInsert", "error "+e.toString());
+        }
     }
 
     Cursor logGetFromTo(long timeFrom, long timeTo) {

@@ -16,15 +16,17 @@ class Vars {
     static Utils utils;
     static DatabaseIO databaseIO;
     static GPSTracker gpsTracker;
+    static MapUtils mapUtils;
 
     static SharedPreferences sharePrefer;
-    static ArrayList<LogLocation> logLocations;
+    static ArrayList<TrackLog> trackLogs;
     static TrackAdapter trackAdapter;
 
-    static long logInterval;
+    static double prevLatitude, prevLongitude, nowLatitude, nowLongitude;
 
     static DecimalFormat decimalComma = new DecimalFormat("##,###,###");
     static SimpleDateFormat sdfDateDay = new SimpleDateFormat("MM-dd(EEE)", Locale.getDefault());
+    static SimpleDateFormat sdfDateDayTime = new SimpleDateFormat("MM-dd(EEE) HH:mm", Locale.getDefault());
     static SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm", Locale.getDefault());
     static SimpleDateFormat sdfDateTimeLog = new SimpleDateFormat("MM-dd HH.mm.ss sss", Locale.US);
     static SimpleDateFormat sdfDate = new SimpleDateFormat("yy-MM-dd", Locale.US);

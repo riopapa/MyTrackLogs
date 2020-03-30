@@ -18,6 +18,7 @@ import java.util.Date;
 
 import static com.urrecliner.mytracklogs.Vars.sdfDate;
 import static com.urrecliner.mytracklogs.Vars.sdfDateDay;
+import static com.urrecliner.mytracklogs.Vars.sdfDateDayTime;
 import static com.urrecliner.mytracklogs.Vars.sdfDateTimeLog;
 import static com.urrecliner.mytracklogs.Vars.sdfTime;
 
@@ -36,7 +37,7 @@ class Utils {
     }
 
     private String traceName (String s) {
-        if (s.equals("performResume") || s.equals("performCreate") || s.equals("callActivityOnResume") || s.equals("access$1200")
+        if (s.equals("dispatchTransaction") || s.equals("zza") || s.equals("performResume") || s.equals("performCreate") || s.equals("callActivityOnResume") || s.equals("access$1200")
                 || s.equals("access$000") || s.equals("handleReceiver") || s.equals("handleMessage") || s.equals("dispatchMessage"))
             return "";
         else
@@ -68,7 +69,7 @@ class Utils {
                     logE("createFile", " Error");
                 }
             }
-            String outText = "\n"+textLine+"\n";
+            String outText = textLine+"\n";
             fw = new FileWriter(file.getAbsoluteFile(), true);
             bw = new BufferedWriter(fw);
             bw.write(outText);
@@ -126,13 +127,11 @@ class Utils {
     String long2DateDay(long l) {
         return sdfDateDay.format(l);
     }
-
+    String long2DateDayTime(long l) { return sdfDateDayTime.format(l); }
     String long2Time (long l) {
         return sdfTime.format(l);
     }
-    String minute2Text(int m) {
-        return (m < 60) ? m+"분":(m/60)+"시간 "+(m%60)+"분";
-    }
+    String minute2Text(int m) { return (m < 60) ? m+"분":(m/60)+"시간 "+(m%60)+"분"; }
 
     void deleteOldLogFiles() {
 
@@ -140,7 +139,7 @@ class Utils {
         File[] files = new File(directory.toString()).listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.endsWith(".txt");
+                return name.contains(PREFIX);
             }
         });
         String oldDate = sdfDate.format(System.currentTimeMillis() - 2*24*60*60*1000L);
@@ -148,7 +147,7 @@ class Utils {
             Collator myCollator = Collator.getInstance();
             for (File file : files) {
                 String shortFileName = file.getName();
-                if (myCollator.compare(shortFileName, oldDate) < 0) {
+                if (myCollator.compare(shortFileName, PREFIX+ oldDate) < 0) {
                     if (!file.delete())
                         Log.e("file", "Delete Error " + file);
                 }

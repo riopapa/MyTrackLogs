@@ -1,15 +1,19 @@
 package com.urrecliner.mytracklogs;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,263 +21,461 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CustomCap;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
+import static com.urrecliner.mytracklogs.Vars.decimalComma;
 import static com.urrecliner.mytracklogs.Vars.gpsTracker;
-import static com.urrecliner.mytracklogs.Vars.logInterval;
 import static com.urrecliner.mytracklogs.Vars.mContext;
 import static com.urrecliner.mytracklogs.Vars.mainActivity;
+import static com.urrecliner.mytracklogs.Vars.mapUtils;
+import static com.urrecliner.mytracklogs.Vars.nowLatitude;
+import static com.urrecliner.mytracklogs.Vars.nowLongitude;
+import static com.urrecliner.mytracklogs.Vars.prevLatitude;
+import static com.urrecliner.mytracklogs.Vars.prevLongitude;
+import static com.urrecliner.mytracklogs.Vars.sdfDateDayTime;
 import static com.urrecliner.mytracklogs.Vars.sharePrefer;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    TextView tvMeter = null, tvMinutes = null;
-    Timer logTimer = new Timer(), displayTimer = new Timer();
-    int cnt = 0;
+    final static String logID = "Main";
+    static Timer logTimer = new Timer();
+    private static Handler updateMarker;
     private boolean modeStarted = false, modePaused = false;
-    TimerTask logTimerTask, displayTask;
-    FloatingActionButton fabGoStop;
-    Location locationPrev, locationNow;
-    long prevLogTime;
-    TextView tvNowDate, tvNowTime, tvLogCount;
-    View tvMainScreen;
-
-    double startLatitude = 0, startLongitude = 0, prevLatitude = 0, prevLongitude = 0, meters = 0;
+    FloatingActionButton fabGoStop, fabWalkDrive, fabPause;
+    long prevLogTime, elapsedTime;
+    TextView tvStartDate, tvStartTime, tvMeter, tvMinutes;
+    Intent serviceIntent;
+    LinearLayout llTimeInfo, llTrackInfo;
+    boolean isWalk = true;
+    double locSouth, locNorth, locWest, locEast;
+    int mapScale = 17;
+    GoogleMap mainMap;
+    Polyline markLines = null;
+    ArrayList<LatLng> listLatLng;
+    Marker markerStart = null, markerFinish = null, markerHere = null;
+    double startLatitude = 0, startLongitude = 0, polyLatitudeT, polyLongitudeT;
+    double meters = 0;
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0, pauseTime = 0;
-    int logCount = 0;
+    int dbCount = 0;
 
+    double totSpeed = 0;
+    CustomCap endCap;
+
+    ArrayList<LatLng> latLngs;
+    ArrayList<Double> latitudes, longitudes;
+    final int ARRAY_COUNT = 5;
+
+    @SuppressLint("RestrictedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mContext = this;
         mainActivity = this;
+        setContentView(R.layout.activity_main);
+
         askPermission();
         utils = new Utils();
-        utils.log("Main","Started");
-        setContentView(R.layout.activity_main);
-        tvNowDate = findViewById(R.id.nowDate);
-        tvNowTime = findViewById(R.id.nowTime);
-        tvLogCount = findViewById(R.id.logCount);
-        tvMainScreen = findViewById(R.id.mainScreen);
-        final TextView tvStartDate = findViewById(R.id.startDate);
-        TextView tvStartTime = findViewById(R.id.startTime);
+        mapUtils = new MapUtils();
+        utils.log(logID,"Started");
+
+        listLatLng = new ArrayList<LatLng>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
+        tvStartDate = findViewById(R.id.startDate);
+        tvStartTime = findViewById(R.id.startTime);
+        tvMeter = findViewById(R.id.meter);
+        tvMinutes = findViewById(R.id.nMinutes);
+        llTimeInfo = findViewById(R.id.timeInfo); llTrackInfo = findViewById(R.id.trackInfo);
+        llTimeInfo.setVisibility(View.INVISIBLE); llTrackInfo.setVisibility(View.INVISIBLE);
 
         gpsTracker = new GPSTracker(mContext);
         sharePrefer = getSharedPreferences("myTracks", Context.MODE_PRIVATE);
 //        logInterval = sharePrefer.getInt("logInterval", 10) * 1000;
-        logInterval = 15*1000;
-        if (gpsTracker.canGetLocation()) {
-            double latitude = gpsTracker.getLatitude();
-            double longitude = gpsTracker.getLongitude();
-            utils.log("Main", "Start app @ "+latitude+" x "+longitude);
-        } else {
-            utils.log("Err","Can't get location.");
-        }
+        gpsTracker.askLocation(isWalk);
+        nowLatitude = gpsTracker.getLatitude();
+        nowLongitude = gpsTracker.getLongitude();
+        utils.log("Main", "Start app @ "+ nowLatitude +" x "+ nowLongitude);
 
         databaseIO = new DatabaseIO();
 
+        fabWalkDrive = findViewById(R.id.fabWalkDrive);
         fabGoStop = findViewById(R.id.fabGoStop);
-        fabGoStop.setOnClickListener(new View.OnClickListener() {
+        fabPause = findViewById(R.id.fabPause);
+        fabPause.setAlpha(0.2f);
+
+        fabWalkDrive.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                delayButtonClick();
-                if (modeStarted) {  // already started
-                    if (modePaused) {       // restart after pause
-                        modePaused = false;
-                        startTimerTask();
-                        prevLogTime = System.currentTimeMillis();
-                        beginTime = System.currentTimeMillis();
-                        fabGoStop.setImageResource(R.mipmap.button_pause);
-                        tvMainScreen.setBackgroundColor(getResources().getColor(R.color.trackActive,mContext.getTheme()));
-                        Toast.makeText(mContext,"Recording continued\n\n",Toast.LENGTH_LONG).show();
-                    }
-                    else {
-                        modePaused = true;
-                        stopTimerTask();
-                        minutes += System.currentTimeMillis() - beginTime;
-                        fabGoStop.setImageResource(R.mipmap.button_restart);
-                        tvMainScreen.setBackgroundColor(getResources().getColor(R.color.design_default_color_primary,mContext.getTheme()));
-                        Toast.makeText(mContext,"Recording PAUSED\n\n",Toast.LENGTH_LONG).show();
-                    }
+                isWalk = !isWalk;
+                fabWalkDrive.setImageResource((isWalk)? R.mipmap.footprint : R.mipmap.drive);
+            }
+        });
+
+        fabGoStop.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("RestrictedApi")
+            @Override
+            public void onClick(View view) {
+                if (modeStarted) {  // STOP
+                    modeStarted = false;
+                    modePaused= false;
+                    endTrackLog();
+                    fabGoStop.setImageResource(R.mipmap.button_start);
+                    fabPause.setAlpha(0.2f);
+                    utils.deleteOldLogFiles();
                 }
-                else {  // then newly start
+                else {  // START
                     modeStarted = true;
                     modePaused = false;
                     prevLogTime = System.currentTimeMillis();
-                    tvMainScreen.setBackgroundColor(getResources().getColor(R.color.trackActive,mContext.getTheme()));
-                    startLog();
-                    delayButtonClick();
-                    fabGoStop.setImageResource(R.mipmap.button_pause);
-                    Toast.makeText(mContext,"Start Recording\n\n",Toast.LENGTH_LONG).show();
+                    beginTrackLog();
+                    fabGoStop.setImageResource(R.mipmap.button_stop);
+                    fabPause.setAlpha(1f);
                 }
-                utils.deleteOldLogFiles();
             }
         });
 
-        fabGoStop.setOnLongClickListener(new View.OnLongClickListener() {
+        fabPause.setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onLongClick(View view) {
+            public void onClick(View view) {
                 if (modeStarted) {
-                    modeStarted = false;
-                    modePaused= false;
-                    finishLog();
-                    fabGoStop.setImageResource(R.mipmap.button_start);
-                    tvMainScreen.setBackgroundColor(getResources().getColor(R.color.design_default_color_primary,mContext.getTheme()));
-                    Toast.makeText(mContext,"Stop Recording\n\n",Toast.LENGTH_LONG).show();
-                    delayButtonClick();
+                    if (modePaused) {      // RESTART
+                        modePaused = false;
+                        beginTimerTask();
+                        beginTime = System.currentTimeMillis();
+                        prevLogTime = beginTime;
+                        fabPause.setImageResource(R.mipmap.button_pause);
+
+                    } else {       // PAUSE
+                        modePaused = true;
+                        stopTimerTask();
+                        minutes += System.currentTimeMillis() - beginTime;
+                        fabPause.setImageResource(R.mipmap.button_restart);
+                    }
                 }
-                return false;
             }
         });
 
-        displayDatTime();
-        locationPrev = new Location("");
-        locationNow = new Location("");
+        showThisAreaMap();
+//        displayDateTime();
         String blank = " ";
+
         tvStartDate.setText(blank);
         tvStartTime.setText(blank);
         tvMeter = findViewById(R.id.meter);
         tvMeter.setText(blank);
-        tvMinutes = findViewById(R.id.minutes);
+        tvMinutes = findViewById(R.id.nMinutes);
         tvMinutes.setText(blank);
         ActionBar ab = this.getSupportActionBar();
         ab.setTitle(" 기록하기");
         ab.setIcon(R.mipmap.my_face) ;
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;
+        updateMarker = new Handler() {public void handleMessage(Message msg) { responseGPSLocation(); }};
 
+        endCap = new CustomCap(
+                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
     }
 
-    private void displayDatTime() {
-        displayTask = new TimerTask() {     // show now date & time
-            @Override
-            public void run() {
-                long nowTime = System.currentTimeMillis();
-                tvNowDate.setText(utils.long2DateDay(nowTime));
-                tvNowTime.setText(utils.long2Time(nowTime));
-                finishTime = System.currentTimeMillis();
-                if (modeStarted) {
-                    long dur = (minutes == 0) ? finishTime - startTime:minutes + finishTime - beginTime;
-                    databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) (dur / 60000));
-                }
-            }
-        };
-        displayTimer.schedule(displayTask,100 ,60*1000);
-    }
-
-    void delayButtonClick() {
-
-        fabGoStop.setEnabled(false);
-        new Timer().schedule(new TimerTask() {  // autoStart
-            @Override
-            public void run() {
-                mainActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        fabGoStop.setEnabled(true);
-                    }
-                });
-            }
-        }, 3000);
-    }
-
-    final static double distanceDelta = 0.000003;
-    DecimalFormat decimalFormat = new DecimalFormat("##,###,###");
-    void startTimerTask()
-    {
+    void beginTimerTask() {
         stopTimerTask();
-        gpsTracker.getLocation();
+        gpsTracker.askLocation(isWalk);
         prevLatitude = gpsTracker.getLatitude();
         prevLongitude = gpsTracker.getLongitude();
-        logTimerTask = new TimerTask() {
-            @Override
-            public void run() {
-                long nowTime = System.currentTimeMillis();
-                TextView tvDuration = findViewById(R.id.minutes);
-                long dur = minutes + nowTime - beginTime;
-                String s = ""+ (dur / 60000);
-                tvDuration.setText(s);
-
-                gpsTracker.getLocation();
-                double latitude = gpsTracker.getLatitude();
-                double longitude = gpsTracker.getLongitude();
-                if (Math.abs(prevLongitude-longitude) > distanceDelta || Math.abs(prevLatitude-latitude) > distanceDelta) {
-                    locationPrev.setLatitude(prevLatitude);
-                    locationPrev.setLongitude(prevLongitude);
-                    locationNow.setLatitude(latitude);
-                    locationNow.setLongitude(longitude);
-                    double distance = locationPrev.distanceTo(locationNow);
-                    double speed = distance * 60 * 60 / (double) ((System.currentTimeMillis() - prevLogTime)/1000);
-                    if (speed > 7200)
-                        utils.log("time","fast distance="+distance+", speed = "+speed);
-                    else
-                        utils.log("time","dist="+distance+", speed= "+speed);
-
-                    meters += distance;
-                    tvMeter.setText(decimalFormat.format(meters));
-                    databaseIO.logInsert(nowTime, latitude, longitude);
-                    s = ""+logCount++;
-                    tvLogCount.setText(s);
-                    prevLatitude = latitude;
-                    prevLongitude = longitude;
-                    prevLogTime = System.currentTimeMillis();
-                }
-                cnt++;
-            }
-        };
-        gpsTracker.getLocation();
-        logTimer.schedule(logTimerTask,5000 ,logInterval);
     }
 
     void stopTimerTask()
     {
-        delayButtonClick();
-        if(logTimerTask != null) {
-            logTimerTask.cancel();
-            logTimerTask = null;
-        }
         gpsTracker.stopUsingGPS();
     }
 
-    void startLog() {
+    void beginTrackLog() {
+        gpsTracker.askLocation(isWalk);
         startTime = System.currentTimeMillis();
         beginTime = startTime;
-        gpsTracker.getLocation();
+        latLngs = new ArrayList<>(); latitudes = new ArrayList<>(); longitudes = new ArrayList<>();
         startLatitude = gpsTracker.getLatitude();
         startLongitude = gpsTracker.getLongitude();
+        for (int i = 0; i < ARRAY_COUNT; i++) { latitudes.add(startLatitude); longitudes.add(startLongitude); }
+        latLngs.add(new LatLng(startLatitude, startLongitude));
+        utils.log(logID, "startLog " + startLatitude + " x " + startLongitude);
         finishTime = 0;
+        dbCount = 0;
         meters = 0;
         minutes = 0;
-        databaseIO.logInsert(startTime, startLatitude, startLongitude);
-        databaseIO.trackInsert(startTime);
-        TextView tvStartDate = findViewById(R.id.startDate);
-        TextView tvStartTime = findViewById(R.id.startTime);
-        TextView tvDuration = findViewById(R.id.minutes);
+        totSpeed = 0;
         tvStartDate.setText(utils.long2DateDay(startTime));
         tvStartTime.setText(utils.long2Time(startTime));
-        tvDuration.setText("0");
-        startTimerTask();
-        MenuItem item = mainMenu.findItem(R.id.showNowMap);
-        item.setVisible(true);
+        tvMinutes.setText("0분");
+        tvMeter.setText("0m");
+        beginTimerTask();
+        llTimeInfo.setVisibility(View.VISIBLE);
+        llTrackInfo.setVisibility(View.VISIBLE);
+        if (markLines != null) {
+            markLines.remove();
+            markLines = null;
+        }
+        markerHandler.sendEmptyMessage(MARK_START);
+        markerHandler.sendEmptyMessage(MARK_HERE);
+        if (markerFinish != null)
+            markerFinish.remove();
+
+        utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
+        databaseIO.trackInsert(startTime);
+
+        updateNotificationBar(utils.long2DateDayTime(startTime), 0, 0, R.mipmap.button_pause);
+        locSouth = startLatitude-0.0001; locNorth = startLatitude+0.0001;
+        locWest = startLongitude-0.0001; locEast = startLongitude+0.0001;
     }
 
-    void finishLog() {
+    void endTrackLog() {
         stopTimerTask();
-        minutes += System.currentTimeMillis() - beginTime;
-        databaseIO.trackUpdate(startTime, finishTime, (int)meters, (int)minutes/60000);
+        finishTime = System.currentTimeMillis();
+        latitudeGPS = gpsTracker.getLatitude(); longitudeGPS = gpsTracker.getLongitude();
+        responseGPSLocation();
+        markerHere.remove();
+        markerHandler.sendEmptyMessage(MARK_FINISH);
+        calcMapScale();
+        mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
+        if (dbCount > 0) {
+            minutes += System.currentTimeMillis() - beginTime;
+            databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) minutes / 60000);
+            utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));
+            dbCount = 0;
+        }
+        else
+            databaseIO.trackDelete(startTime);
     }
+
+    void showThisAreaMap() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.mainMap);
+        mapFragment.getMapAsync(this);
+    }
+
+    void responseGPSLocation() {
+
+        long nowTime = System.currentTimeMillis();
+        nowLatitude = latitudeGPS; nowLongitude = longitudeGPS;
+        elapsedTime = minutes + nowTime - beginTime;
+        String s = utils.minute2Text((int) elapsedTime / 60000);
+        tvMinutes.setText(s);
+        double distance = mapUtils.getShortDistance();
+        long deltaTime = nowTime - prevLogTime;
+        double speed = distance * (60*60) / ((double)deltaTime/1000);
+        if (deltaTime > 100 && (!isWalk && speed < 2500000 && speed > 4000) || (isWalk && speed<45000 && speed>1000)) {
+            markerHandler.sendEmptyMessage(MARK_HERE);
+            totSpeed += speed;
+            latitudes.remove(0); longitudes.remove(0);
+            latitudes.add(nowLatitude); longitudes.add(nowLongitude);
+            calcMidLatLng();
+            nowLatitude = latitudes.get(1); nowLongitude = longitudes.get(1);
+            if (nowLatitude > locNorth) locNorth = nowLatitude;
+            if (nowLatitude < locSouth) locSouth = nowLatitude;
+            if (nowLongitude > locEast) locEast = nowLongitude;
+            if (nowLongitude < locWest) locWest = nowLongitude;
+            try {
+                listLatLng.set(0, new LatLng(prevLatitude, prevLongitude));
+                listLatLng.set(1, new LatLng(nowLatitude, nowLongitude));;
+                markerHandler.sendEmptyMessage(ONE_LINE);
+            } catch (Exception e) {
+                utils.log(logID, "ONE_LINE Exception "+e.toString());
+                e.printStackTrace();
+            }
+            try {
+                if (dbCount == 0)
+                    markerHandler.sendEmptyMessage(MARK_START);
+            } catch (Exception e) {
+                utils.log(logID, "MARK_START Exception "+e.toString());
+                e.printStackTrace();
+            }
+            distance = mapUtils.getShortDistance();
+            meters += distance;
+            try {
+                databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
+                databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
+                utils.log("update", sdfDateDayTime.format(nowTime) + " distance="+distance+
+                        " meter=" + meters + " elapsed=" + elapsedTime);
+                s = decimalComma.format(meters) + "m /" + dbCount;
+                tvMeter.setText(s);
+                markerHandler.sendEmptyMessage(MARK_HERE);
+            } catch (Exception e) {
+                utils.log(logID, "dbCount 3 Exception "+e.toString());
+                e.printStackTrace();
+            }
+            prevLatitude = nowLatitude;
+            prevLongitude = nowLongitude;
+            prevLogTime = nowTime;
+            dbCount++;
+            utils.log("GOOD", "dist " + distance + " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
+        }
+        else
+            utils.log("X", "BAD " + distance + " XSpeed " + speed+" XTime "+(nowTime-prevLogTime));
+
+    }
+
+    void calcMidLatLng() {
+        latitudes.set(1, ((latitudes.get(0)+latitudes.get(2))/2+latitudes.get(1))/2);
+        latitudes.set(3, ((latitudes.get(2)+latitudes.get(4))/2+latitudes.get(3))/2);
+        latitudes.set(2, ((latitudes.get(1)+latitudes.get(3))/2+latitudes.get(2))/2);
+        longitudes.set(1, ((longitudes.get(0)+longitudes.get(2))/2+longitudes.get(1))/2);
+        longitudes.set(3, ((longitudes.get(2)+longitudes.get(4))/2+longitudes.get(3))/2);
+        longitudes.set(2, ((longitudes.get(1)+longitudes.get(3))/2+longitudes.get(2))/2);
+    }
+
+    void calcMapScale() {
+        double fullMapDistance = mapUtils.getFullMapDistance();
+        int newScale = mapUtils.getMapScale(fullMapDistance);
+        if (newScale == mapScale)
+            return;
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+
+        mainMap = googleMap;
+        gpsTracker.askLocation(isWalk);
+        nowLatitude = gpsTracker.getLatitude();
+        nowLongitude = gpsTracker.getLongitude();
+        calcMapScale();
+        utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude);
+        markerHandler.sendEmptyMessage(MARK_HERE);
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
+    }
+
+    static double latitudeGPS, longitudeGPS;
+    static void locationUpdated(Double latitude, Double longitude) {
+        latitudeGPS = latitude; longitudeGPS = longitude;
+        updateMarker.sendEmptyMessage(0);
+    }
+    final Handler markerHandler = new Handler() {public void handleMessage(Message msg) { mapShowMarker(msg.what); }};
+
+    void mapShowMarker (final int markerType) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                final LatLng latLng;
+                switch (markerType) {
+                    case MARK_START:
+                        latLng = new LatLng(nowLatitude, nowLongitude);
+                        if (markerStart != null)
+                            markerStart.remove();
+                        mainActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                markerStart = mainMap.addMarker(new MarkerOptions()
+                                        .zIndex(2000f)
+                                        .position(latLng)
+                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_start)));
+                            }
+                        });
+                        break;
+                    case MARK_FINISH:
+                        latLng = new LatLng(nowLatitude, nowLongitude);
+                        if (markerFinish != null)
+                            markerFinish.remove();
+                        mainActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                markerFinish = mainMap.addMarker(new MarkerOptions()
+                                        .zIndex(3000f)
+                                        .position(latLng)
+                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_finish)));
+                            }
+                        });
+                        break;
+                    case MARK_HERE:
+                        latLng = new LatLng(latitudeGPS, longitudeGPS);
+                        if (markerHere != null)
+                            markerHere.remove();
+                        mainActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                markerHere = mainMap.addMarker(new MarkerOptions()
+                                        .zIndex(10000f)
+                                        .position(latLng)
+                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.my_face)));
+                            }
+                        });
+                        break;
+                    case MARK_DOT:
+                        latLng = new LatLng(nowLatitude, nowLongitude);
+                        mainActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mainMap.addMarker(new MarkerOptions()
+                                        .zIndex(1f)
+                                        .position(latLng)
+                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_dot_small)));
+                            }
+                        });
+                        break;
+                    case MARK_REFRESH:
+                        mainActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+//                                mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+//                                        new LatLng((locNorth+locSouth)/2, (locEast+locWest)/2), mapScale));
+                            }
+                        });
+                        break;
+                    case ONE_LINE:
+                        mainActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                PolylineOptions polyOptions = new PolylineOptions();
+                                polyOptions.color(getColor(R.color.trackRoute));
+                                polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
+                                polyOptions.endCap(endCap);
+                                polyOptions.addAll(listLatLng);
+                                mainMap.addPolyline(polyOptions);
+                            }
+                        });
+                        break;
+                }
+            }
+        });
+    }
+
+    final int MARK_START = 11, MARK_FINISH = 22, MARK_HERE = 33, MARK_DOT = 44, MARK_REFRESH = 55, ONE_LINE = 66;
+
+    private static final int POLYLINE_STROKE_WIDTH_PX = 6;
 
     @Override
     public void onBackPressed() {
         finish();
-        finishLog();
+        if (modeStarted)
+            endTrackLog();
+        new Timer().schedule(new TimerTask() {
+            public void run() {
+                finishAffinity();
+                android.os.Process.killProcess(android.os.Process.myPid());
+                System.exit(0);
+            }
+        }, 100);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (serviceIntent!=null) {
+            stopService(serviceIntent);
+            serviceIntent = null;
+        }
     }
 
     Menu mainMenu;
@@ -281,8 +483,8 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         mainMenu = menu;
         getMenuInflater().inflate(R.menu.main_menu, menu);
-        MenuItem item = menu.findItem(R.id.showNowMap);
-        item.setVisible(modeStarted);
+//        MenuItem item = menu.findItem(R.id.showNowMap);
+//        item.setVisible(modeStarted);
         return true;
     }
 
@@ -296,20 +498,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
                 return true;
 
-            case R.id.showNowMap:
-                if (minutes == 0)
-                    duration = finishTime - startTime;
-                else {
-                    duration = minutes + finishTime - beginTime;
-                }
-                intent = new Intent(MainActivity.this, MapActivity.class);
-                intent.putExtra("startTime", startTime);
-                intent.putExtra("finishTime", System.currentTimeMillis());
-                intent.putExtra("minutes", (int) duration / 60000);
-                intent.putExtra("meters", (int) meters);
-                startActivity(intent);
-                return true;
-
             case R.id.log_view:
                 intent = new Intent(MainActivity.this, TrackActivity.class);
                 startActivity(intent);
@@ -318,6 +506,14 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    void updateNotificationBar(String dateTime, int meters, int minutes, int iconId) {
+        Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
+//        updateIntent.putExtra("dateTime", dateTime);
+//        updateIntent.putExtra("meters", meters);
+//        updateIntent.putExtra("minutes", minutes);
+        updateIntent.putExtra("iconId", iconId);
+        startService(updateIntent);
+    }
 
     // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓
     ArrayList<String> permissions = new ArrayList<>();

@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.DecimalFormat;
 
-import static com.urrecliner.mytracklogs.Vars.logLocations;
+import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
 import static com.urrecliner.mytracklogs.Vars.trackActivity;
@@ -24,6 +24,8 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHolder>  {
 
     static class TrackViewHolder extends RecyclerView.ViewHolder {
+
+        final String logID = "trackAdapter";
         TextView tvStartFinish, tvMeterMinutes;
         View viewLine;
 
@@ -36,13 +38,14 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
                 @Override
                 public void onClick(View view) {
                     int position = getAdapterPosition();
-                    LogLocation LogLocation = logLocations.get(position);
+                    TrackLog TrackLog = trackLogs.get(position);
                     Intent intent = new Intent(trackActivity, MapActivity.class);
-                    intent.putExtra("startTime", LogLocation.getStartTime());
-                    intent.putExtra("finishTime", LogLocation.getFinishTime());
-                    intent.putExtra("minutes", LogLocation.getMinutes());
-                    intent.putExtra("meters", LogLocation.getMeters());
+                    intent.putExtra("startTime", TrackLog.getStartTime());
+                    intent.putExtra("finishTime", TrackLog.getFinishTime());
+                    intent.putExtra("minutes", TrackLog.getMinutes());
+                    intent.putExtra("meters", TrackLog.getMeters());
                     intent.putExtra("position", position);
+                    utils.log(logID, "jump to Map");
                     trackActivity.startActivity(intent);
                 }
             });
@@ -59,22 +62,22 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
     private static void deleteThisLogOrNot(int pos) {
         final int position = pos;
-        final LogLocation LogLocation = logLocations.get(pos);
+        final TrackLog TrackLog = trackLogs.get(pos);
         AlertDialog.Builder builder = new AlertDialog.Builder(trackActivity);
         builder.setTitle("이동 정보 처리");
-        String s = utils.long2DateDay(LogLocation.getStartTime())+" "+utils.long2Time(LogLocation.getStartTime())+"~"+
-                utils.long2Time(LogLocation.getFinishTime())+"\n"+
-                decimalComma.format(LogLocation.getMeters())+"m "+utils.minute2Text(LogLocation.getMinutes());
+        String s = utils.long2DateDay(TrackLog.getStartTime())+" "+utils.long2Time(TrackLog.getStartTime())+"~"+
+                utils.long2Time(TrackLog.getFinishTime())+"\n"+
+                decimalComma.format(TrackLog.getMeters())+"m "+utils.minute2Text(TrackLog.getMinutes());
         builder.setMessage(s);
         builder.setNegativeButton("Delete",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        long fromTime = LogLocation.getStartTime();
-                        long toTime = LogLocation.getFinishTime();
-                        logLocations.remove(position);
-                        trackAdapter.notifyItemRemoved(position);
+                        long fromTime = TrackLog.getStartTime();
+                        long toTime = TrackLog.getFinishTime();
+                        databaseIO.trackDelete(fromTime);
                         databaseIO.logDeleteFromTo(fromTime, toTime);
-
+                        trackLogs.remove(position);
+                        trackAdapter.notifyItemRemoved(position);
                     }
                 });
         AlertDialog dialog = builder.create();
@@ -93,20 +96,24 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     public void onBindViewHolder(@NonNull TrackViewHolder viewHolder, int position) {
 
         String s;
-        LogLocation LogLocation = logLocations.get(position);
-        s = utils.long2DateDay(LogLocation.getStartTime())+"\n"+utils.long2Time(LogLocation.getStartTime())+"~"+
-                utils.long2Time(LogLocation.getFinishTime());
+        TrackLog TrackLog = trackLogs.get(position);
+        s = utils.long2DateDay(TrackLog.getStartTime())+"\n"+utils.long2Time(TrackLog.getStartTime())+"~"+
+                utils.long2Time(TrackLog.getFinishTime());
         viewHolder.tvStartFinish.setText(s);
         DecimalFormat decimalFormat = new DecimalFormat("##,###,###");
-        s = decimalFormat.format(LogLocation.getMeters())+"m\n"+utils.minute2Text(LogLocation.getMinutes());
+        s = decimalFormat.format(TrackLog.getMeters())+"m\n"+utils.minute2Text(TrackLog.getMinutes());
         viewHolder.tvMeterMinutes.setText(s);
-        int grayed = 220 * position / (logLocations.size()+1);
-        viewHolder.viewLine.setBackgroundColor(ContextCompat.getColor(trackActivity,R.color.logBackground) - grayed - grayed * 256 - grayed * 256 * 256);
+        int grayed = 180 * position / (trackLogs.size()+1);
+        int backColor = ContextCompat.getColor(trackActivity,R.color.logBackground) - grayed - grayed * 256 - grayed * 256 * 256;
+        viewHolder.viewLine.setBackgroundColor(backColor);
+        backColor ^= 0xAAAAAA;
+        viewHolder.tvStartFinish.setTextColor(backColor);
+        viewHolder.tvMeterMinutes.setTextColor(backColor);
     }
 
     @Override
     public int getItemCount() {
-        return (null != logLocations ? logLocations.size() : 0);
+        return (null != trackLogs ? trackLogs.size() : 0);
     }
 
 }

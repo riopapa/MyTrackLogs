@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-import static com.urrecliner.mytracklogs.Vars.logLocations;
+import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.trackActivity;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
@@ -18,6 +18,7 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class TrackActivity extends AppCompatActivity {
 
+    final String logID = "track";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,9 +29,13 @@ public class TrackActivity extends AppCompatActivity {
         mRecyclerView.setLayoutManager(mLinearLayoutManager);
 
         trackActivity = this;
-        logLocations = new ArrayList<>();
+        trackLogs = new ArrayList<>();
 
         Cursor cursor = databaseIO.trackFromTo();
+        if (cursor == null) {
+            utils.log(logID, "retry to read db");
+            cursor = databaseIO.trackFromTo();
+        }
         if (cursor != null) {
             utils.log("cursor","count ="+cursor.getCount());
             // move cursor to first row
@@ -40,7 +45,7 @@ public class TrackActivity extends AppCompatActivity {
                     long finishTime = cursor.getLong(cursor.getColumnIndex("finishTime"));
                     int meters = cursor.getInt(cursor.getColumnIndex("meters"));
                     int minutes = cursor.getInt(cursor.getColumnIndex("minutes"));
-                    logLocations.add(new LogLocation(startTime, finishTime, meters, minutes));
+                    trackLogs.add(new TrackLog(startTime, finishTime, meters, minutes));
                 } while (cursor.moveToNext());
             }
         }

@@ -106,7 +106,7 @@ public class SearchActivity extends AppCompatActivity {
                 hourS = hour; minuteS = min;
                 calendar.set(yearS, monthS, dayS, hourS, minuteS,0);
                 startTime = calendar.getTimeInMillis();
-                utils.log("start time", sdfFullTime.format(startTime));
+//                utils.log("start time", sdfFullTime.format(startTime));
                 if (startTime > finishTime) {
                     utils.log("startTP","startTime "+startTime+" > finishTime "+finishTime);
                     finishTime = startTime + 24*60*60000;

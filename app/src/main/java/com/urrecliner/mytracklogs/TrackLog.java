@@ -1,10 +1,10 @@
 package com.urrecliner.mytracklogs;
 
-class LogLocation {
+class TrackLog {
     private long startTime, finishTime;
     private int meters, minutes;
 
-    LogLocation(long startTime, long finishTime, int meters, int minutes ) {
+    TrackLog(long startTime, long finishTime, int meters, int minutes ) {
         this.startTime = startTime;
         this.finishTime = finishTime;
         this.meters = meters;

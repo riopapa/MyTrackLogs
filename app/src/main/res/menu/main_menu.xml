@@ -23,11 +23,4 @@
         app:showAsAction="always"
         android:title="show Map" />
 
-    <item
-        android:id="@+id/showNowMap"
-        android:orderInCategory="100"
-        android:icon="@mipmap/show_map"
-        app:showAsAction="always"
-        android:title="show Map" />
-
 </menu>
