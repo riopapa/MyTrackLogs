@@ -52,7 +52,7 @@ public class TrackActivity extends AppCompatActivity {
         trackAdapter = new TrackAdapter();
         mRecyclerView.setAdapter(trackAdapter);
         ActionBar ab = this.getSupportActionBar();
-        ab.setTitle(" 이동 리스트");
+        ab.setTitle(R.string.track_list);
         ab.setIcon(R.mipmap.my_face) ;
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;

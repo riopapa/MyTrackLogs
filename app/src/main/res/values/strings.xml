@@ -2,4 +2,9 @@
     <string name="app_name">_MyTrackLogs</string>
     <string name="start_time">시작</string>
     <string name="finish_time">종료</string>
+    <string name="zero_minutes">0분</string>
+    <string name="zero_meters">0m</string>
+    <string name="track_recording"> 기록하기</string>
+    <string name="review_map">" 지도보기"</string>
+    <string name="track_list">" 이동 리스트"</string>
 </resources>

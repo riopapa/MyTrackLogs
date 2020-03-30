@@ -4,9 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,8 +18,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CustomCap;
 import com.google.android.gms.maps.model.Dash;
-import com.google.android.gms.maps.model.Dot;
 import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -57,14 +54,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private static final int POLYLINE_STROKE_WIDTH_PX = 6;
     private static final int PATTERN_DASH_LENGTH_PX = 6;
     private static final int PATTERN_GAP_LENGTH_PX = 6;
-    private static final PatternItem DOT = new Dot();
+//    private static final PatternItem DOT = new Dot();
     private static final PatternItem DASH = new Dash(PATTERN_DASH_LENGTH_PX);
     private static final PatternItem GAP = new Gap(PATTERN_GAP_LENGTH_PX);
 
     private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
 
     private Activity mapActivity;
-    private long startTime, finishTime, mapStartTime, mapFinishTime, thisTime;
+    private long startTime, finishTime, thisTime;
     private int iMinutes, iMeters, position;
     ArrayList<LatLng> listLatLng;
     ArrayList<Float> listAngle;
@@ -78,7 +75,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             this.latitude = latitude;
             this.longitude = longitude;
         }
-        long getLogTime() { return logTime; }
         double getLatitude() { return latitude; }
         double getLongitude() { return longitude; }
     }
@@ -98,7 +94,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         position = getIntent().getIntExtra("position",-1);
 
         ActionBar ab = this.getSupportActionBar();
-        ab.setTitle(" 지도");
+        ab.setTitle(R.string.review_map);
         ab.setIcon(R.mipmap.my_face) ;
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;
@@ -125,26 +121,25 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //        utils.log("distance"," min max is "+distanceGap);
         utils.log(logID, " x "+(locWest-locEast)/2+" y"+(locNorth-locSouth)/2+" dist="+fullMapDistance);
 
-        buildMarkerPositions();
+//        buildMarkerPositions();
 
+        CustomCap endCap = new CustomCap(
+                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
         PolylineOptions polyOptions = new PolylineOptions();
         polyOptions.color(getColor(R.color.trackRoute));
         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
         polyOptions.pattern(PATTERN_POLYLINE_MINE);
-        polyOptions.addAll(listLatLng);
+        polyOptions.endCap(endCap);
 
-        googleMap.addPolyline(polyOptions);
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2), mapScale));
+        listLatLng = new ArrayList<>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
 
-        Bitmap spriteOriginal = BitmapFactory.decodeResource(this.getResources(), R.mipmap.triangle);
-        final int markScale = 24;
-        final Bitmap sprite = Bitmap.createScaledBitmap(spriteOriginal, markScale, markScale, false);
-        for (int idx = 0; idx < listAngle.size(); idx++) {
-            Matrix matrix = new Matrix();
-            matrix.preRotate(listAngle.get(idx));///in degree
-            Bitmap mBitmap = Bitmap.createBitmap(sprite, 0, 0, markScale, markScale, matrix, true);
-            googleMap.addMarker(new MarkerOptions().position(listLatLng.get(idx)).icon(BitmapDescriptorFactory.fromBitmap(mBitmap)).anchor(0.5f, 0.5f));
+        for (int i = 0; i < locLogs.size()-1; i++) {
+            listLatLng.set(0, new LatLng(locLogs.get(i).getLatitude(), locLogs.get(i).getLongitude()));
+            listLatLng.set(1, new LatLng(locLogs.get(i+1).getLatitude(), locLogs.get(i+1).getLongitude()));
+            polyOptions.addAll(listLatLng);
+            googleMap.addPolyline(polyOptions);
         }
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2), mapScale));
 
         googleMap.addMarker(new MarkerOptions()
                 .position(new LatLng(listLatLng.get(0).latitude, listLatLng.get(0).longitude))
@@ -209,46 +204,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         return false;
     }
 
-    private void buildMarkerPositions() {
-
-        LocLog locLogFrom, locLogTo;
-        listLatLng = new ArrayList<>();
-        listAngle = new ArrayList<>();
-
-        int dbCount = locLogs.size();
-        utils.log("dbCount","="+dbCount);
-        locLogFrom = locLogs.get(0);
-//        locLogTo = locLogs.get(dbCount-1);
-
-//        mapStartTime = locLogFrom.getLogTime();
-//        mapFinishTime = locLogs.get(dbCount-1).logTime;
-//        markInterval = (mapFinishTime - mapStartTime) / dbCount;
-//        utils.log(logID, "interval = "+markInterval);
-//        markInterval = Math.min(markInterval, 20*60*100);
-//        long prevTime = locLogFrom.getLogTime();
-
-        prevLatitude = locLogFrom.getLatitude();
-        prevLongitude = locLogFrom.getLongitude();
-        for (LocLog ll: locLogs) {
-//            long thisTime = ll.logTime;
-            nowLatitude = ll.latitude;
-            nowLongitude = ll.longitude;
-            float angle = calcDirection(prevLatitude, prevLongitude, nowLatitude, nowLongitude);
-            if (!Float.isNaN(angle)) {      // if angle is valid
-                double distance = mapUtils.getShortDistance();
-                if (distance > distanceGap) {    // if not so near
-                    listLatLng.add(new LatLng(nowLatitude, nowLongitude));
-                    listAngle.add(angle);
-                    prevLatitude = nowLatitude;
-                    prevLongitude = nowLongitude;
-                }
-            }
-            else
-                utils.log(logID, "angle is NaN ");
-        }
-        utils.log(logID, "result marks = "+listAngle.size());
-    }
-
     Menu mapMenu;
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -268,7 +223,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         return super.onOptionsItemSelected(item);
     }
-
 
     private static void deleteThisLogOrNot(int pos) {
         final int position = pos;
@@ -293,34 +247,5 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         AlertDialog dialog = builder.create();
         dialog.show();
     }
-    
-    private float calcDirection(double P1_latitude, double P1_longitude, double P2_latitude, double P2_longitude)
-    {
-        final double CONSTANT2RADIAN = (3.141592 / 180);
-        final double CONSTANT2DEGREE = (180 / 3.141592);
-
-        // 현재 위치 : 위도나 경도는 지구 중심을 기반으로 하는 각도이기 때문에 라디안 각도로 변환한다.
-        double Cur_Lat_radian = P1_latitude * CONSTANT2RADIAN;
-        double Cur_Lon_radian = P1_longitude * CONSTANT2RADIAN;
-
-        // 목표 위치 : 위도나 경도는 지구 중심을 기반으로 하는 각도이기 때문에 라디안 각도로 변환한다.
-        double Dest_Lat_radian = P2_latitude * CONSTANT2RADIAN;
-        double Dest_Lon_radian = P2_longitude * CONSTANT2RADIAN;
-
-        // radian distance
-        double radian_distance =
-                Math.acos(Math.sin(Cur_Lat_radian) * Math.sin(Dest_Lat_radian) + Math.cos(Cur_Lat_radian) * Math.cos(Dest_Lat_radian) * Math.cos(Cur_Lon_radian - Dest_Lon_radian));
-
-        // 목적지 이동 방향을 구한다.(현재 좌표에서 다음 좌표로 이동하기 위해서는 방향을 설정해야 한다. 라디안 값임
-        double radian_bearing = Math.acos((Math.sin(Dest_Lat_radian) - Math.sin(Cur_Lat_radian) * Math.cos(radian_distance)) / (Math.cos(Cur_Lat_radian) * Math.sin(radian_distance)));        // acos의 인수로 주어지는 x는 360분법의 각도가 아닌 radian(호도)값이다.
-
-        double true_bearing;
-        if (Math.sin(Dest_Lon_radian - Cur_Lon_radian) < 0)
-            true_bearing = 360 - radian_bearing * CONSTANT2DEGREE;
-        else
-            true_bearing = radian_bearing * CONSTANT2DEGREE;
-        return (float) true_bearing;
-    }
-
 
 }

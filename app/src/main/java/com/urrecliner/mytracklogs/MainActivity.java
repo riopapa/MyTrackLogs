@@ -55,7 +55,6 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     final static String logID = "Main";
-    static Timer logTimer = new Timer();
     private static Handler updateMarker;
     private boolean modeStarted = false, modePaused = false;
     FloatingActionButton fabGoStop, fabWalkDrive, fabPause;
@@ -70,9 +69,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Polyline markLines = null;
     ArrayList<LatLng> listLatLng;
     Marker markerStart = null, markerFinish = null, markerHere = null;
-    double startLatitude = 0, startLongitude = 0, polyLatitudeT, polyLongitudeT;
+    double startLatitude = 0, startLongitude = 0;
     double meters = 0;
-    long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0, pauseTime = 0;
+    long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
 
     double totSpeed = 0;
@@ -95,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapUtils = new MapUtils();
         utils.log(logID,"Started");
 
-        listLatLng = new ArrayList<LatLng>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
+        listLatLng = new ArrayList<>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
         tvStartDate = findViewById(R.id.startDate);
         tvStartTime = findViewById(R.id.startTime);
         tvMeter = findViewById(R.id.meter);
@@ -181,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvMinutes = findViewById(R.id.nMinutes);
         tvMinutes.setText(blank);
         ActionBar ab = this.getSupportActionBar();
-        ab.setTitle(" 기록하기");
+        ab.setTitle(R.string.track_recording);
         ab.setIcon(R.mipmap.my_face) ;
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;
@@ -220,8 +219,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         totSpeed = 0;
         tvStartDate.setText(utils.long2DateDay(startTime));
         tvStartTime.setText(utils.long2Time(startTime));
-        tvMinutes.setText("0분");
-        tvMeter.setText("0m");
+        tvMinutes.setText(R.string.zero_minutes);
+        tvMeter.setText(R.string.zero_meters);
         beginTimerTask();
         llTimeInfo.setVisibility(View.VISIBLE);
         llTrackInfo.setVisibility(View.VISIBLE);
@@ -289,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (nowLongitude > locEast) locEast = nowLongitude;
             if (nowLongitude < locWest) locWest = nowLongitude;
             listLatLng.set(0, new LatLng(prevLatitude, prevLongitude));
-            listLatLng.set(1, new LatLng(nowLatitude, nowLongitude));;
+            listLatLng.set(1, new LatLng(nowLatitude, nowLongitude));
             markerHandler.sendEmptyMessage(ONE_LINE);
             try {
                 if (dbCount == 0)
@@ -336,9 +335,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void calcMapScale() {
         double fullMapDistance = mapUtils.getFullMapDistance();
-        int newScale = mapUtils.getMapScale(fullMapDistance);
-        if (newScale == mapScale)
-            return;
+        mapScale = mapUtils.getMapScale(fullMapDistance);
     }
 
     @Override
@@ -421,15 +418,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             }
                         });
                         break;
-                    case MARK_REFRESH:
-                        mainActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-//                                mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-//                                        new LatLng((locNorth+locSouth)/2, (locEast+locWest)/2), mapScale));
-                            }
-                        });
-                        break;
                     case ONE_LINE:
                         mainActivity.runOnUiThread(new Runnable() {
                             @Override
@@ -448,7 +436,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    final int MARK_START = 11, MARK_FINISH = 22, MARK_HERE = 33, MARK_DOT = 44, MARK_REFRESH = 55, ONE_LINE = 66;
+    final int MARK_START = 11, MARK_FINISH = 22, MARK_HERE = 33, MARK_DOT = 44, ONE_LINE = 66;
 
     private static final int POLYLINE_STROKE_WIDTH_PX = 6;
 

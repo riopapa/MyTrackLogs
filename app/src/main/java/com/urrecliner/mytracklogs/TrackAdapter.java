@@ -32,8 +32,8 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         TrackViewHolder(View view) {
             super(view);
             this.viewLine = itemView.findViewById(R.id.one_track);
-            this.tvStartFinish = (TextView) itemView.findViewById(R.id.startFinishTime);
-            this.tvMeterMinutes = (TextView) itemView.findViewById(R.id.metersMinutes);
+            this.tvStartFinish = itemView.findViewById(R.id.startFinishTime);
+            this.tvMeterMinutes = itemView.findViewById(R.id.metersMinutes);
             this.viewLine.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
