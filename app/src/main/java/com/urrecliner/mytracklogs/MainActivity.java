@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View view) {
                 isWalk = !isWalk;
-                fabWalkDrive.setImageResource((isWalk)? R.mipmap.footprint : R.mipmap.drive);
+                 fabWalkDrive.setImageResource((isWalk)? R.mipmap.footprint : R.mipmap.drive);
             }
         });
 
@@ -277,7 +277,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double distance = mapUtils.getShortDistance();
         long deltaTime = nowTime - prevLogTime;
         double speed = distance * (60*60) / ((double)deltaTime/1000);
-        if (deltaTime > 100 && (!isWalk && speed < 2500000 && speed > 4000) || (isWalk && speed<45000 && speed>1000)) {
+        if (deltaTime > 1000 && (!isWalk && speed < 2500000 && speed > 4000) || (isWalk && speed<45000 && speed>1000)) {
             markerHandler.sendEmptyMessage(MARK_HERE);
             totSpeed += speed;
             latitudes.remove(0); longitudes.remove(0);
@@ -288,14 +288,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (nowLatitude < locSouth) locSouth = nowLatitude;
             if (nowLongitude > locEast) locEast = nowLongitude;
             if (nowLongitude < locWest) locWest = nowLongitude;
-            try {
-                listLatLng.set(0, new LatLng(prevLatitude, prevLongitude));
-                listLatLng.set(1, new LatLng(nowLatitude, nowLongitude));;
-                markerHandler.sendEmptyMessage(ONE_LINE);
-            } catch (Exception e) {
-                utils.log(logID, "ONE_LINE Exception "+e.toString());
-                e.printStackTrace();
-            }
+            listLatLng.set(0, new LatLng(prevLatitude, prevLongitude));
+            listLatLng.set(1, new LatLng(nowLatitude, nowLongitude));;
+            markerHandler.sendEmptyMessage(ONE_LINE);
             try {
                 if (dbCount == 0)
                     markerHandler.sendEmptyMessage(MARK_START);
@@ -306,13 +301,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             distance = mapUtils.getShortDistance();
             meters += distance;
             try {
-                databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
-                databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
-                utils.log("update", sdfDateDayTime.format(nowTime) + " distance="+distance+
-                        " meter=" + meters + " elapsed=" + elapsedTime);
-                s = decimalComma.format(meters) + "m /" + dbCount;
-                tvMeter.setText(s);
-                markerHandler.sendEmptyMessage(MARK_HERE);
+                if (dbCount % 2 == 0) {
+                    databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
+                    databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
+//                    utils.log("update", sdfDateDayTime.format(nowTime) + " distance=" + distance +
+//                            " meter=" + meters + " elapsed=" + elapsedTime);
+                    s = decimalComma.format(meters) + "m /" + dbCount;
+                    tvMeter.setText(s);
+                    markerHandler.sendEmptyMessage(MARK_HERE);
+                }
             } catch (Exception e) {
                 utils.log(logID, "dbCount 3 Exception "+e.toString());
                 e.printStackTrace();
@@ -323,8 +320,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dbCount++;
             utils.log("GOOD", "dist " + distance + " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
         }
-        else
-            utils.log("X", "BAD " + distance + " XSpeed " + speed+" XTime "+(nowTime-prevLogTime));
+//        else
+//            utils.log("X", "BAD " + distance + " XSpeed " + speed+" XTime "+(nowTime-prevLogTime));
 
     }
 

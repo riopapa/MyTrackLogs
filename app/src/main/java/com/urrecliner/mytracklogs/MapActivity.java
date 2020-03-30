@@ -1,6 +1,8 @@
 package com.urrecliner.mytracklogs;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -43,6 +45,7 @@ import static com.urrecliner.mytracklogs.Vars.nowLatitude;
 import static com.urrecliner.mytracklogs.Vars.nowLongitude;
 import static com.urrecliner.mytracklogs.Vars.prevLatitude;
 import static com.urrecliner.mytracklogs.Vars.prevLongitude;
+import static com.urrecliner.mytracklogs.Vars.trackActivity;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.utils;
@@ -260,18 +263,37 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     public boolean onOptionsItemSelected(MenuItem item) {
 
         if (item.getItemId() == R.id.deleteLog) {
-            TrackLog trackLog = trackLogs.get(position);
-            long fromTime = trackLog.getStartTime();
-            long toTime = trackLog.getFinishTime();
-            databaseIO.trackDelete(fromTime);
-            databaseIO.logDeleteFromTo(fromTime, toTime);
-            trackLogs.remove(position);
-            trackAdapter.notifyItemRemoved(position);
+            deleteThisLogOrNot(position);
             finish();
         }
         return super.onOptionsItemSelected(item);
     }
 
+
+    private static void deleteThisLogOrNot(int pos) {
+        final int position = pos;
+        final TrackLog TrackLog = trackLogs.get(pos);
+        AlertDialog.Builder builder = new AlertDialog.Builder(trackActivity);
+        builder.setTitle("이동 정보 처리");
+        String s = utils.long2DateDay(TrackLog.getStartTime())+" "+utils.long2Time(TrackLog.getStartTime())+"~"+
+                utils.long2Time(TrackLog.getFinishTime())+"\n"+
+                decimalComma.format(TrackLog.getMeters())+"m "+utils.minute2Text(TrackLog.getMinutes());
+        builder.setMessage(s);
+        builder.setNegativeButton("Delete",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        long fromTime = TrackLog.getStartTime();
+                        long toTime = TrackLog.getFinishTime();
+                        databaseIO.trackDelete(fromTime);
+                        databaseIO.logDeleteFromTo(fromTime, toTime);
+                        trackLogs.remove(position);
+                        trackAdapter.notifyItemRemoved(position);
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+    
     private float calcDirection(double P1_latitude, double P1_longitude, double P2_latitude, double P2_longitude)
     {
         final double CONSTANT2RADIAN = (3.141592 / 180);
