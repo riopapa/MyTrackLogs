@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,23 +19,16 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationManagerCompat;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CustomCap;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -52,12 +44,13 @@ import static com.urrecliner.mytracklogs.Vars.prevLatitude;
 import static com.urrecliner.mytracklogs.Vars.prevLongitude;
 import static com.urrecliner.mytracklogs.Vars.sdfDateDayTime;
 import static com.urrecliner.mytracklogs.Vars.sharePrefer;
+import static com.urrecliner.mytracklogs.Vars.showMarker;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     final static String logID = "Main";
-    private static Handler updateMarker;
+    private static Handler updateMarker, notifyAction;
     private boolean modeStarted = false, modePaused = false;
     FloatingActionButton fabGoStop, fabWalkDrive, fabPause;
     long prevLogTime, elapsedTime;
@@ -70,14 +63,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     GoogleMap mainMap;
     Polyline markLines = null;
     ArrayList<LatLng> listLatLng;
-    Marker markerStart = null, markerFinish = null, markerHere = null;
     double startLatitude = 0, startLongitude = 0;
     double meters = 0;
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
 
     double totSpeed = 0;
-    CustomCap endCap;
 
     ArrayList<LatLng> latLngs;
     ArrayList<Double> latitudes, longitudes;
@@ -92,15 +83,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
         utils = new Utils();
         mapUtils = new MapUtils();
+        showMarker = new ShowMarker();
 
         askPermission();
 
         utils.log(logID,"Started");
-//        if (!isNotificationAllowed()) {
-//            Toast.makeText(mContext," Allow this app on Android Alarm",Toast.LENGTH_LONG).show();
-//            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
-//            startActivity(intent);
-//        }
 
         listLatLng = new ArrayList<>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
         tvStartDate = findViewById(R.id.startDate);
@@ -135,43 +122,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @SuppressLint("RestrictedApi")
             @Override
             public void onClick(View view) {
-                if (modeStarted) {  // STOP
-                    modeStarted = false;
-                    modePaused= false;
-                    endTrackLog();
-                    fabGoStop.setImageResource(R.mipmap.button_start);
-                    fabPause.setAlpha(0.2f);
-                    utils.deleteOldLogFiles();
-                }
-                else {  // START
-                    modeStarted = true;
-                    modePaused = false;
-                    prevLogTime = System.currentTimeMillis();
-                    beginTrackLog();
-                    fabGoStop.setImageResource(R.mipmap.button_stop);
-                    fabPause.setAlpha(1f);
-                }
+                goStop_Clicked();
             }
         });
 
         fabPause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (modeStarted) {
-                    if (modePaused) {      // RESTART
-                        modePaused = false;
-                        beginTimerTask();
-                        beginTime = System.currentTimeMillis();
-                        prevLogTime = beginTime;
-                        fabPause.setImageResource(R.mipmap.button_pause);
-
-                    } else {       // PAUSE
-                        modePaused = true;
-                        stopTimerTask();
-                        minutes += System.currentTimeMillis() - beginTime;
-                        fabPause.setImageResource(R.mipmap.button_restart);
-                    }
-                }
+                pauseRestart_Clicked();
             }
         });
 
@@ -190,9 +148,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;
         updateMarker = new Handler() {public void handleMessage(Message msg) { responseGPSLocation(); }};
+        notifyAction = new Handler() {public void handleMessage(Message msg) { notificationClicked(msg.what); }};
 
-        endCap = new CustomCap(
-                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
+
         new Timer().schedule(new TimerTask() {
             public void run () {
                 Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
@@ -200,6 +158,44 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startService(updateIntent);
             }
         }, 100);
+    }
+
+    void goStop_Clicked() {
+        if (modeStarted) {  // STOP
+            modeStarted = false;
+            modePaused= false;
+            endTrackLog();
+            fabGoStop.setImageResource(R.mipmap.button_start);
+            fabPause.setAlpha(0.2f);
+            utils.deleteOldLogFiles();
+        }
+        else {  // START
+            modeStarted = true;
+            modePaused = false;
+            prevLogTime = System.currentTimeMillis();
+            beginTrackLog();
+            fabGoStop.setImageResource(R.mipmap.button_stop);
+            fabPause.setAlpha(1f);
+        }
+    }
+
+    void pauseRestart_Clicked() {
+        if (modeStarted) {
+            if (modePaused) {      // RESTART
+                modePaused = false;
+                beginTimerTask();
+                beginTime = System.currentTimeMillis();
+                prevLogTime = beginTime;
+                fabPause.setImageResource(R.mipmap.button_pause);
+
+            } else {       // PAUSE
+                modePaused = true;
+                stopTimerTask();
+                minutes += System.currentTimeMillis() - beginTime;
+                fabPause.setImageResource(R.mipmap.button_restart);
+            }
+        }
+
     }
 
     void beginTimerTask() {
@@ -240,10 +236,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             markLines.remove();
             markLines = null;
         }
-        markerHandler.sendEmptyMessage(MARK_START);
-        markerHandler.sendEmptyMessage(MARK_HERE);
-        if (markerFinish != null)
-            markerFinish.remove();
+        showMarker.drawStart(startLatitude, startLongitude);
 
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
         databaseIO.trackInsert(startTime);
@@ -257,8 +250,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         finishTime = System.currentTimeMillis();
         latitudeGPS = gpsTracker.getLatitude(); longitudeGPS = gpsTracker.getLongitude();
         responseGPSLocation();
-        markerHere.remove();
-        markerHandler.sendEmptyMessage(MARK_FINISH);
+//        markerHere.remove();
+        showMarker.drawHere(nowLatitude, nowLongitude);
+        showMarker.drawFinish(nowLatitude, nowLongitude);
+//        markerHandler.sendEmptyMessage(MARK_FINISH);
         calcMapScale();
         mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
         if (dbCount > 0) {
@@ -290,7 +285,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         long deltaTime = nowTime - prevLogTime;
         double speed = distance * (60*60) / ((double)deltaTime/1000);   // 269649 car
         if (deltaTime > 1000 && (!isWalk && speed < 2500000 && speed > 4000) || (isWalk && speed<45000 && speed>1000)) {
-            markerHandler.sendEmptyMessage(MARK_HERE);
+//            markerHandler.sendEmptyMessage(MARK_HERE);
+            showMarker.drawHere(nowLatitude, nowLongitude);
             totSpeed += speed;
             latitudes.remove(0); longitudes.remove(0);
             latitudes.add(nowLatitude); longitudes.add(nowLongitude);
@@ -302,10 +298,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (nowLongitude < locWest) locWest = nowLongitude;
             listLatLng.set(0, new LatLng(prevLatitude, prevLongitude));
             listLatLng.set(1, new LatLng(nowLatitude, nowLongitude));
-            markerHandler.sendEmptyMessage(ONE_LINE);
+            showMarker.drawPoly(listLatLng);
+//            markerHandler.sendEmptyMessage(ONE_LINE);
             try {
                 if (dbCount == 0)
-                    markerHandler.sendEmptyMessage(MARK_START);
+                    showMarker.drawStart(startLatitude, startLongitude);
+//                    markerHandler.sendEmptyMessage(MARK_START);
             } catch (Exception e) {
                 utils.log(logID, "MARK_START Exception "+e.toString());
                 e.printStackTrace();
@@ -318,7 +316,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
                     s = decimalComma.format(meters) + "m /" + dbCount;
                     tvMeter.setText(s);
-                    markerHandler.sendEmptyMessage(MARK_HERE);
+                    showMarker.drawHere(nowLatitude, nowLongitude);
+//                    markerHandler.sendEmptyMessage(MARK_HERE);
                     updateNotificationLaps(minutes, meters);
                 }
             } catch (Exception e) {
@@ -355,11 +354,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mainMap = googleMap;
         gpsTracker.askLocation(isWalk);
+        showMarker.init(mainActivity, googleMap);
         nowLatitude = gpsTracker.getLatitude();
         nowLongitude = gpsTracker.getLongitude();
         calcMapScale();
         utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude);
-        markerHandler.sendEmptyMessage(MARK_HERE);
+        showMarker.drawHere(nowLatitude, nowLongitude);
+//        markerHandler.sendEmptyMessage(MARK_HERE);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
     }
 
@@ -368,93 +369,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         latitudeGPS = latitude; longitudeGPS = longitude;
         updateMarker.sendEmptyMessage(0);
     }
-    final Handler markerHandler = new Handler() {public void handleMessage(Message msg) { mapShowMarker(msg.what); }};
 
-    void mapShowMarker (final int markerType) {
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                final LatLng latLng;
-                switch (markerType) {
-                    case MARK_START:
-                        latLng = new LatLng(nowLatitude, nowLongitude);
-                        if (markerStart != null)
-                            markerStart.remove();
-                        mainActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                markerStart = mainMap.addMarker(new MarkerOptions()
-                                        .zIndex(2000f)
-                                        .position(latLng)
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_start)));
-                            }
-                        });
-                        break;
-                    case MARK_FINISH:
-                        latLng = new LatLng(nowLatitude, nowLongitude);
-                        if (markerFinish != null)
-                            markerFinish.remove();
-                        mainActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                markerFinish = mainMap.addMarker(new MarkerOptions()
-                                        .zIndex(3000f)
-                                        .position(latLng)
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_finish)));
-                            }
-                        });
-                        break;
-                    case MARK_HERE:
-                        latLng = new LatLng(latitudeGPS, longitudeGPS);
-                        if (markerHere != null)
-                            markerHere.remove();
-                        mainActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                markerHere = mainMap.addMarker(new MarkerOptions()
-                                        .zIndex(10000f)
-                                        .position(latLng)
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.my_face)));
-                            }
-                        });
-                        break;
-                    case MARK_DOT:
-                        latLng = new LatLng(nowLatitude, nowLongitude);
-                        mainActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mainMap.addMarker(new MarkerOptions()
-                                        .zIndex(1f)
-                                        .position(latLng)
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_dot_small)));
-                            }
-                        });
-                        break;
-                    case ONE_LINE:
-                        mainActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                PolylineOptions polyOptions = new PolylineOptions();
-                                polyOptions.color(getColor(R.color.trackRoute));
-                                polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
-                                polyOptions.endCap(endCap);
-                                polyOptions.addAll(listLatLng);
-                                mainMap.addPolyline(polyOptions);
-                            }
-                        });
-                        break;
-                }
-            }
-        });
+    static void notificationBarTouched(int buttonType) {
+        utils.log(logID, "touch Button "+buttonType);
+        notifyAction.sendEmptyMessage(buttonType);
     }
 
-    final int MARK_START = 11, MARK_FINISH = 22, MARK_HERE = 33, MARK_DOT = 44, ONE_LINE = 66;
-
-    private static final int POLYLINE_STROKE_WIDTH_PX = 6;
+    void notificationClicked(int buttonType) {
+        switch (buttonType) {
+            case 0: // GO_STOP
+                goStop_Clicked();
+                break;
+            case 1: // PAUSE_RESTART
+                pauseRestart_Clicked();
+                break;
+            case 2:
+                exit_Application();
+                break;
+            default:
+                utils.log(logID, "Touch Code error "+buttonType);
+        }
+    }
 
     @Override
     public void onBackPressed() {
         finish();
+        exit_Application();
+    }
+
+    void exit_Application() {
         if (modeStarted)
             endTrackLog();
         new Timer().schedule(new TimerTask() {
@@ -465,7 +408,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }, 100);
     }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -488,7 +430,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Intent intent;
-        long duration;
         switch (item.getItemId()) {
             case R.id.time_search:
                 intent = new Intent(MainActivity.this, SearchActivity.class);
@@ -503,20 +444,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
-    void updateNotificationBar(String dateTime, int meters, long minutes, int iconId) {
-
-        utils.log(logID,"transfering dateTime:"+dateTime+" meters "+meters+" "+minutes);
-        Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
-        updateIntent.putExtra("dateTime", dateTime);
-        String s = utils.minute2Text( (int) (minutes / 60000))+"\n"+decimalComma.format(meters) + "m";
-        updateIntent.putExtra("meters", s);
-        updateIntent.putExtra("iconId", iconId);
-        startService(updateIntent);
-    }
-
     void updateNotificationDate(long time) {
 
-        String dateTime  = utils.long2DateDay(startTime)+"\n"+utils.long2Time(startTime);
+        String dateTime  = utils.long2DateDay(time)+"\n"+utils.long2Time(time);
         Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
         updateIntent.putExtra("status", 1);
         updateIntent.putExtra("dateTime", dateTime);
@@ -537,21 +467,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
         updateIntent.putExtra("status", 3);
         startService(updateIntent);
-    }
-
-    private boolean isNotificationAllowed() {
-        Set<String> notiListenerSet = NotificationManagerCompat.getEnabledListenerPackages(this);
-        String myPackageName = getPackageName();
-
-        for(String packageName : notiListenerSet) {
-            if(packageName == null) {
-                continue;
-            }
-            if(packageName.equals(myPackageName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓

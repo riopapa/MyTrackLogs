@@ -17,6 +17,7 @@ class Vars {
     static DatabaseIO databaseIO;
     static GPSTracker gpsTracker;
     static MapUtils mapUtils;
+    static ShowMarker showMarker;
 
     static SharedPreferences sharePrefer;
     static ArrayList<TrackLog> trackLogs;

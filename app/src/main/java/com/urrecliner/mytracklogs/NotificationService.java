@@ -32,7 +32,6 @@ public class NotificationService extends Service {
         super.onCreate();
         if (utils == null)
             utils = new Utils();
-        utils.log(logID,"notify oncreate");
 //        createNotificationChannel();
         mContext = this;
         if (null != mRemoteViews) {
@@ -50,17 +49,20 @@ public class NotificationService extends Service {
 
         int operation = intent.getIntExtra("operation", -1);
         utils.log(logID, "operation : "+operation);
-//        switch (operation) {
-//            case STOP_SAY:
-//                text2Speech.ttsStop();
-//                break;
-//            case RE_LOAD:
-//                prepareLists.read();
-//                break;
-//            default:
-//                break;
-//        }
-
+        if (operation != -1) {
+            switch (operation) {
+                case GO_STOP:
+                    MainActivity.notificationBarTouched(0);
+                    break;
+                case PAUSE_RESTART:
+                    MainActivity.notificationBarTouched(1);
+                    break;
+                case EXIT_APP:
+                    MainActivity.notificationBarTouched(2);
+                    break;
+            }
+            return START_STICKY;
+        }
         int status = intent.getIntExtra("status",0);
         createNotification();
         switch (status) {
