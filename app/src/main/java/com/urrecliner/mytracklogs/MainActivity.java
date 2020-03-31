@@ -20,6 +20,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -35,6 +36,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -84,15 +86,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @SuppressLint("RestrictedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         mContext = this;
         mainActivity = this;
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        askPermission();
         utils = new Utils();
         mapUtils = new MapUtils();
+
+        askPermission();
+
         utils.log(logID,"Started");
+//        if (!isNotificationAllowed()) {
+//            Toast.makeText(mContext," Allow this app on Android Alarm",Toast.LENGTH_LONG).show();
+//            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+//            startActivity(intent);
+//        }
 
         listLatLng = new ArrayList<>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
         tvStartDate = findViewById(R.id.startDate);
@@ -168,7 +176,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         showThisAreaMap();
-//        displayDateTime();
         String blank = " ";
 
         tvStartDate.setText(blank);
@@ -189,11 +196,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         new Timer().schedule(new TimerTask() {
             public void run () {
                 Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
-                updateIntent.putExtra("isUpdate", true);
+                updateIntent.putExtra("case", 0);
                 startService(updateIntent);
             }
         }, 100);
-
     }
 
     void beginTimerTask() {
@@ -241,8 +247,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
         databaseIO.trackInsert(startTime);
-
-        updateNotificationBar(utils.long2DateDayTime(startTime), 0, 0, R.mipmap.button_pause);
+        updateNotificationDate(startTime);
         locSouth = startLatitude-0.01; locNorth = startLatitude+0.01;
         locWest = startLongitude-0.01; locEast = startLongitude+0.01;
     }
@@ -264,6 +269,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         else
             databaseIO.trackDelete(startTime);
+        updateNotificationLaps(minutes, meters);
+        updateNotificationEnd();
     }
 
     void showThisAreaMap() {
@@ -281,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvMinutes.setText(s);
         double distance = mapUtils.getShortDistance();
         long deltaTime = nowTime - prevLogTime;
-        double speed = distance * (60*60) / ((double)deltaTime/1000);
+        double speed = distance * (60*60) / ((double)deltaTime/1000);   // 269649 car
         if (deltaTime > 1000 && (!isWalk && speed < 2500000 && speed > 4000) || (isWalk && speed<45000 && speed>1000)) {
             markerHandler.sendEmptyMessage(MARK_HERE);
             totSpeed += speed;
@@ -309,11 +316,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (dbCount % 2 == 0) {
                     databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
                     databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
-//                    utils.log("update", sdfDateDayTime.format(nowTime) + " distance=" + distance +
-//                            " meter=" + meters + " elapsed=" + elapsedTime);
                     s = decimalComma.format(meters) + "m /" + dbCount;
                     tvMeter.setText(s);
                     markerHandler.sendEmptyMessage(MARK_HERE);
+                    updateNotificationLaps(minutes, meters);
                 }
             } catch (Exception e) {
                 utils.log(logID, "dbCount 3 Exception "+e.toString());
@@ -497,13 +503,55 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
-    void updateNotificationBar(String dateTime, int meters, int minutes, int iconId) {
+    void updateNotificationBar(String dateTime, int meters, long minutes, int iconId) {
+
+        utils.log(logID,"transfering dateTime:"+dateTime+" meters "+meters+" "+minutes);
         Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
-//        updateIntent.putExtra("dateTime", dateTime);
-//        updateIntent.putExtra("meters", meters);
-//        updateIntent.putExtra("minutes", minutes);
+        updateIntent.putExtra("dateTime", dateTime);
+        String s = utils.minute2Text( (int) (minutes / 60000))+"\n"+decimalComma.format(meters) + "m";
+        updateIntent.putExtra("meters", s);
         updateIntent.putExtra("iconId", iconId);
         startService(updateIntent);
+    }
+
+    void updateNotificationDate(long time) {
+
+        String dateTime  = utils.long2DateDay(startTime)+"\n"+utils.long2Time(startTime);
+        Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
+        updateIntent.putExtra("status", 1);
+        updateIntent.putExtra("dateTime", dateTime);
+        startService(updateIntent);
+    }
+
+    void updateNotificationLaps(long minutes, double meters) {
+
+        String s = utils.minute2Text( (int) (minutes / 60000))+"\n"+decimalComma.format(meters) + "m";
+        Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
+        updateIntent.putExtra("status", 2);
+        updateIntent.putExtra("laps", s);
+        startService(updateIntent);
+    }
+
+    void updateNotificationEnd() {
+
+        Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
+        updateIntent.putExtra("status", 3);
+        startService(updateIntent);
+    }
+
+    private boolean isNotificationAllowed() {
+        Set<String> notiListenerSet = NotificationManagerCompat.getEnabledListenerPackages(this);
+        String myPackageName = getPackageName();
+
+        for(String packageName : notiListenerSet) {
+            if(packageName == null) {
+                continue;
+            }
+            if(packageName.equals(myPackageName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓
