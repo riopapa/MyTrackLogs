@@ -111,12 +111,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         utils.log("Main", "Start app @ "+ nowLatitude +" x "+ nowLongitude);
 
         databaseIO = new DatabaseIO();
-
         fabWalkDrive = findViewById(R.id.fabWalkDrive);
         fabGoStop = findViewById(R.id.fabGoStop);
         fabPause = findViewById(R.id.fabPause);
         fabPause.setAlpha(0.2f);
-
         fabWalkDrive.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -188,6 +186,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         endCap = new CustomCap(
                 BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
+        new Timer().schedule(new TimerTask() {
+            public void run () {
+                Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
+                updateIntent.putExtra("isUpdate", true);
+                startService(updateIntent);
+            }
+        }, 100);
+
     }
 
     void beginTimerTask() {
@@ -237,8 +243,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         databaseIO.trackInsert(startTime);
 
         updateNotificationBar(utils.long2DateDayTime(startTime), 0, 0, R.mipmap.button_pause);
-        locSouth = startLatitude-0.0001; locNorth = startLatitude+0.0001;
-        locWest = startLongitude-0.0001; locEast = startLongitude+0.0001;
+        locSouth = startLatitude-0.01; locNorth = startLatitude+0.01;
+        locWest = startLongitude-0.01; locEast = startLongitude+0.01;
     }
 
     void endTrackLog() {

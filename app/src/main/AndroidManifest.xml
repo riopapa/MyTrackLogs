@@ -38,6 +38,7 @@
         <activity android:name=".MapActivity" />
         <activity android:name=".TrackActivity" />
         <activity android:name=".SearchActivity" />
+
         <service android:name=".NotificationService" />
         <service android:name=".GPSTracker" />
     </application>

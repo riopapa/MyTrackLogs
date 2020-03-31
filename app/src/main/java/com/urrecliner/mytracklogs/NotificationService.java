@@ -14,7 +14,7 @@ import androidx.core.app.NotificationCompat;
 
 public class NotificationService extends Service {
 
-    private Context context;
+    private Context mContext;
     NotificationCompat.Builder mBuilder = null;
     NotificationChannel mNotificationChannel = null;
     NotificationManager mNotificationManager;
@@ -22,22 +22,22 @@ public class NotificationService extends Service {
     String dateTimeStr, meterStr, minuteStr;
     int iconId;
     private final String logID = "Notify";
+    private static final int STOP_SAY = 10011;
+    private static final int RE_LOAD = 10022;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        context = this;
+        mContext = this;
         if (null != mRemoteViews) {
             mRemoteViews.removeAllViews(R.layout.notification_bar);
             mRemoteViews = null;
         }
-        mRemoteViews = new RemoteViews(context.getPackageName(), R.layout.notification_bar);
+        mRemoteViews = new RemoteViews(mContext.getPackageName(), R.layout.notification_bar);
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
+    public IBinder onBind(Intent intent) { return null; }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -65,7 +65,7 @@ public class NotificationService extends Service {
             mNotificationManager.createNotificationChannel(mNotificationChannel);
         }
         if (null == mBuilder) {
-            mBuilder = new NotificationCompat.Builder(context,"default")
+            mBuilder = new NotificationCompat.Builder(mContext,"default")
                     .setSmallIcon(R.mipmap.button_pause)
                     .setContent(mRemoteViews)
                     .setOnlyAlertOnce(true)
@@ -73,33 +73,24 @@ public class NotificationService extends Service {
                     .setOngoing(true);
         }
 
-        Intent mainIntent = new Intent(context, MainActivity.class);
-        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(context, 0, mainIntent, 0));
+        Intent mainIntent = new Intent(mContext, MainActivity.class);
+        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
 
-        Intent intent = new Intent(this, NotificationService.class);
-        PendingIntent pi = PendingIntent.getService(context, 2, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(pi);
-        mRemoteViews.setOnClickPendingIntent(R.id.nGoStop, pi);
+        Intent reloadIntent = new Intent(this, NotificationService.class);
+        reloadIntent.putExtra("operation", RE_LOAD);
+        reloadIntent.putExtra("isFromNotification", true);
+        PendingIntent reloadPi = PendingIntent.getService(mContext, 1, reloadIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(reloadPi);
+        mRemoteViews.setOnClickPendingIntent(R.id.nGoStop, reloadPi);
+
     }
 
     private void updateRemoteViews(String dateTime, String meters, String minutes, int iconId) {
-        final String fDateTime = dateTime, fMeters = meters, fMinutes = minutes;
-        final int fIconId = iconId;
-//        mainActivity.runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                mRemoteViews.setImageViewResource(R.id.nGoStop, fIconId);
-//                mRemoteViews.setTextViewText(R.id.nDateTime, fDateTime);
-//                mRemoteViews.setTextViewText(R.id.nKms, fMeters);
-//                mRemoteViews.setTextViewText(R.id.nMinutes, fMinutes);
-////        mRemoteViews.setTextColor(R.id.nDateTime, color);
-////        mRemoteViews.setTextColor(R.id.nKms, color);
-////        mRemoteViews.setTextColor(R.id.nMinutes, color);
-//            }
-//        });
+        mRemoteViews.setImageViewResource(R.id.nGoStop, iconId);
+        mRemoteViews.setTextViewText(R.id.nDateTime, dateTime);
+        mRemoteViews.setTextViewText(R.id.nKms, meters);
+        mRemoteViews.setTextViewText(R.id.nMinutes, minutes);
     }
-
 
     @Override
     public void onDestroy() {

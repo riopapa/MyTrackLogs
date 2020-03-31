@@ -1,2 +1,2 @@
-rootProject.name='My Track Logs'
+rootProject.name='My TrackLogs'
 include ':app'
