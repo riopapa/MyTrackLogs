@@ -21,9 +21,9 @@
     <TextView
         android:id="@+id/nDateTime"
         android:layout_width="0dp"
+        android:layout_weight="6"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_weight="8"
         android:textAlignment="center"
         android:layout_margin="4dp"
         android:textColor="@color/notifyText"
@@ -34,13 +34,13 @@
     <TextView
         android:id="@+id/nLaps"
         android:layout_width="0dp"
-        android:layout_weight="3"
-        android:layout_height="match_parent"
+        android:layout_weight="4"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:textAlignment="center"
-        android:text="4km\n30분"
         android:textColor="@color/notifyText"
         android:layout_margin="4dp"
+        android:text="4km\n30분"
         android:textSize="16sp"
         android:textStyle="bold" />
 
@@ -49,7 +49,7 @@
         android:layout_width="0dp"
         android:layout_height="40dp"
         android:layout_margin="6dp"
-        android:layout_weight="4"
+        android:layout_weight="2"
         android:layout_gravity="center"
         android:src="@mipmap/button_start" />
 
@@ -58,7 +58,7 @@
         android:layout_width="0dp"
         android:layout_height="40dp"
         android:layout_margin="6dp"
-        android:layout_weight="4"
+        android:layout_weight="2"
         android:layout_gravity="center"
         android:src="@mipmap/button_pause" />
 

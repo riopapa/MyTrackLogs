@@ -32,6 +32,13 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static com.urrecliner.mytracklogs.Vars.ACTION_EXIT;
+import static com.urrecliner.mytracklogs.Vars.ACTION_INIT;
+import static com.urrecliner.mytracklogs.Vars.ACTION_PAUSE;
+import static com.urrecliner.mytracklogs.Vars.ACTION_RESTART;
+import static com.urrecliner.mytracklogs.Vars.ACTION_START;
+import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
+import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
 import static com.urrecliner.mytracklogs.Vars.gpsTracker;
@@ -150,11 +157,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateMarker = new Handler() {public void handleMessage(Message msg) { responseGPSLocation(); }};
         notifyAction = new Handler() {public void handleMessage(Message msg) { notificationClicked(msg.what); }};
 
-
         new Timer().schedule(new TimerTask() {
             public void run () {
                 Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
-                updateIntent.putExtra("case", 0);
+                updateIntent.putExtra("status", "init");
                 startService(updateIntent);
             }
         }, 100);
@@ -168,6 +174,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             fabGoStop.setImageResource(R.mipmap.button_start);
             fabPause.setAlpha(0.2f);
             utils.deleteOldLogFiles();
+            updateNotification(ACTION_STOP);
         }
         else {  // START
             modeStarted = true;
@@ -176,26 +183,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             beginTrackLog();
             fabGoStop.setImageResource(R.mipmap.button_stop);
             fabPause.setAlpha(1f);
+            updateNotification(ACTION_START);
         }
     }
 
     void pauseRestart_Clicked() {
         if (modeStarted) {
-            if (modePaused) {      // RESTART
+            if (modePaused) {      // already paused, let restart
                 modePaused = false;
                 beginTimerTask();
                 beginTime = System.currentTimeMillis();
                 prevLogTime = beginTime;
                 fabPause.setImageResource(R.mipmap.button_pause);
-
-            } else {       // PAUSE
+                updateNotification(ACTION_RESTART);
+            } else {       // make paused
                 modePaused = true;
                 stopTimerTask();
                 minutes += System.currentTimeMillis() - beginTime;
                 fabPause.setImageResource(R.mipmap.button_restart);
+                updateNotification(ACTION_PAUSE);
             }
         }
-
     }
 
     void beginTimerTask() {
@@ -240,7 +248,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
         databaseIO.trackInsert(startTime);
-        updateNotificationDate(startTime);
         locSouth = startLatitude-0.01; locNorth = startLatitude+0.01;
         locWest = startLongitude-0.01; locEast = startLongitude+0.01;
     }
@@ -264,8 +271,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         else
             databaseIO.trackDelete(startTime);
-        updateNotificationLaps(minutes, meters);
-        updateNotificationEnd();
+        updateNotification(ACTION_UPDATE);
+        updateNotification(ACTION_STOP);
     }
 
     void showThisAreaMap() {
@@ -284,7 +291,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double distance = mapUtils.getShortDistance();
         long deltaTime = nowTime - prevLogTime;
         double speed = distance * (60*60) / ((double)deltaTime/1000);   // 269649 car
-        if (deltaTime > 1000 && (!isWalk && speed < 2500000 && speed > 4000) || (isWalk && speed<45000 && speed>1000)) {
+        if (deltaTime > 1000 && (!isWalk && speed < 600000 && speed > 4000) || (isWalk && speed<45000 && speed>1000)) {
 //            markerHandler.sendEmptyMessage(MARK_HERE);
             showMarker.drawHere(nowLatitude, nowLongitude);
             totSpeed += speed;
@@ -298,7 +305,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (nowLongitude < locWest) locWest = nowLongitude;
             listLatLng.set(0, new LatLng(prevLatitude, prevLongitude));
             listLatLng.set(1, new LatLng(nowLatitude, nowLongitude));
-            showMarker.drawPoly(listLatLng);
+            showMarker.drawLine(listLatLng);
 //            markerHandler.sendEmptyMessage(ONE_LINE);
             try {
                 if (dbCount == 0)
@@ -311,14 +318,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             distance = mapUtils.getShortDistance();
             meters += distance;
             try {
-                if (dbCount % 2 == 0) {
+                if (dbCount % 3 == 0) {
                     databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
                     databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
                     s = decimalComma.format(meters) + "m /" + dbCount;
                     tvMeter.setText(s);
                     showMarker.drawHere(nowLatitude, nowLongitude);
 //                    markerHandler.sendEmptyMessage(MARK_HERE);
-                    updateNotificationLaps(minutes, meters);
+                    updateNotification(ACTION_UPDATE);
                 }
             } catch (Exception e) {
                 utils.log(logID, "dbCount 3 Exception "+e.toString());
@@ -375,19 +382,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         notifyAction.sendEmptyMessage(buttonType);
     }
 
-    void notificationClicked(int buttonType) {
-        switch (buttonType) {
-            case 0: // GO_STOP
+    void notificationClicked(int operation) {
+        utils.log(logID, "notificationClicked "+operation);
+        switch (operation) {
+            case 1: // GO_STOP
                 goStop_Clicked();
                 break;
-            case 1: // PAUSE_RESTART
+            case 2: // PAUSE_RESTART
                 pauseRestart_Clicked();
                 break;
-            case 2:
+            case 3: // EXIT
                 exit_Application();
                 break;
             default:
-                utils.log(logID, "Touch Code error "+buttonType);
+                utils.log(logID, "Touch Code error "+operation);
         }
     }
 
@@ -400,6 +408,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void exit_Application() {
         if (modeStarted)
             endTrackLog();
+        updateNotification(ACTION_EXIT);
         new Timer().schedule(new TimerTask() {
             public void run() {
                 finishAffinity();
@@ -444,28 +453,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
-    void updateNotificationDate(long time) {
-
-        String dateTime  = utils.long2DateDay(time)+"\n"+utils.long2Time(time);
+    void updateNotification(String action) {
+        utils.log(logID, "updateNotification *** "+action);
         Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
-        updateIntent.putExtra("status", 1);
-        updateIntent.putExtra("dateTime", dateTime);
-        startService(updateIntent);
-    }
-
-    void updateNotificationLaps(long minutes, double meters) {
-
-        String s = utils.minute2Text( (int) (minutes / 60000))+"\n"+decimalComma.format(meters) + "m";
-        Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
-        updateIntent.putExtra("status", 2);
-        updateIntent.putExtra("laps", s);
-        startService(updateIntent);
-    }
-
-    void updateNotificationEnd() {
-
-        Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
-        updateIntent.putExtra("status", 3);
+        updateIntent.putExtra("action", action);
+        switch (action) {
+            case ACTION_UPDATE:
+                String s = utils.minute2Text( (int) (minutes / 60000))+"\n"+decimalComma.format(meters) + "m";
+                updateIntent.putExtra("laps", s);
+                break;
+            case ACTION_INIT:
+            case ACTION_START:
+            case ACTION_PAUSE:
+            case ACTION_STOP:
+            case ACTION_RESTART:
+                break;
+            default:
+        }
         startService(updateIntent);
     }
 

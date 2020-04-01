@@ -32,5 +32,13 @@ class Vars {
     static SimpleDateFormat sdfDateTimeLog = new SimpleDateFormat("MM-dd HH.mm.ss sss", Locale.US);
     static SimpleDateFormat sdfDate = new SimpleDateFormat("yy-MM-dd", Locale.US);
 
+    final static String ACTION_INIT = "init";
+    final static String ACTION_START = "start";
+    final static String ACTION_PAUSE = "pause";
+    final static String ACTION_STOP = "stop";
+    final static String ACTION_RESTART = "restart";
+    final static String ACTION_UPDATE = "update";
+    final static String ACTION_EXIT = "exit";
+
 }
 

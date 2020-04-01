@@ -22,7 +22,6 @@ import com.google.android.gms.maps.model.CustomCap;
 import com.google.android.gms.maps.model.Dash;
 import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PatternItem;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -42,6 +41,7 @@ import static com.urrecliner.mytracklogs.Vars.nowLatitude;
 import static com.urrecliner.mytracklogs.Vars.nowLongitude;
 import static com.urrecliner.mytracklogs.Vars.prevLatitude;
 import static com.urrecliner.mytracklogs.Vars.prevLongitude;
+import static com.urrecliner.mytracklogs.Vars.showMarker;
 import static com.urrecliner.mytracklogs.Vars.trackActivity;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
@@ -61,10 +61,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
 
     private Activity mapActivity;
-    private long startTime, finishTime, thisTime;
+    private long startTime, finishTime;
     private int iMinutes, iMeters, position;
     ArrayList<LatLng> listLatLng;
-    ArrayList<Float> listAngle;
     ArrayList<LocLog> locLogs;
     static class LocLog {
         private long logTime;
@@ -78,8 +77,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         double getLatitude() { return latitude; }
         double getLongitude() { return longitude; }
     }
-
-    double distanceGap, totalDistance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,9 +92,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         ActionBar ab = this.getSupportActionBar();
         ab.setTitle(R.string.review_map);
-        ab.setIcon(R.mipmap.my_face) ;
-        ab.setDisplayUseLogoEnabled(true) ;
-        ab.setDisplayShowHomeEnabled(true) ;
+        ab.setIcon(R.mipmap.my_face);
+        ab.setDisplayUseLogoEnabled(true);
+        ab.setDisplayShowHomeEnabled(true);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.fragMap);
@@ -105,26 +102,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
-    GoogleMap nowMap;
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
-        nowMap = googleMap;
+        showMarker.init(mapActivity, googleMap);
         String s;
         if (retrieveDBLog()) return;
 
         double fullMapDistance = mapUtils.getFullMapDistance();
         int mapScale = mapUtils.getMapScale(fullMapDistance);
-        distanceGap = fullMapDistance / 100;   // to ignore mark if less than this distance
-//        utils.log("distance"," Org is "+distanceGap+" total is "+totalDistance);
-        distanceGap = Math.min(totalDistance/locLogs.size(), distanceGap);
-//        utils.log("distance"," min max is "+distanceGap);
-        utils.log(logID, " x "+(locWest-locEast)/2+" y"+(locNorth-locSouth)/2+" dist="+fullMapDistance);
 
-//        buildMarkerPositions();
-
-        CustomCap endCap = new CustomCap(
-                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
+        CustomCap endCap = new CustomCap(BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
         PolylineOptions polyOptions = new PolylineOptions();
         polyOptions.color(getColor(R.color.trackRoute));
         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
@@ -141,18 +129,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2), mapScale));
 
-        googleMap.addMarker(new MarkerOptions()
-                .position(new LatLng(listLatLng.get(0).latitude, listLatLng.get(0).longitude))
-                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_start)));
-        googleMap.addMarker(new MarkerOptions()
-                .position(new LatLng(listLatLng.get(listLatLng.size()-1).latitude, listLatLng.get(listLatLng.size()-1).longitude))
-                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_finish)));
 
-        googleMap.getUiSettings().setCompassEnabled(true);
+//        showMarker.drawStart(listLatLng.get(1).latitude, listLatLng.get(1).longitude);
+        showMarker.drawStart(locLogs.get(0).latitude, locLogs.get(0).longitude);
+        showMarker.drawFinish(locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude);
+
+//        googleMap.getUiSettings().setCompassEnabled(true);
 //        googleMap.getUiSettings().setZoomControlsEnabled(true);
-        googleMap.getUiSettings().setMyLocationButtonEnabled(false);
-        googleMap.getUiSettings().setZoomGesturesEnabled(true);
-        googleMap.getUiSettings().setTiltGesturesEnabled(false);
+//        googleMap.getUiSettings().setMyLocationButtonEnabled(false);
+//        googleMap.getUiSettings().setZoomGesturesEnabled(true);
+//        googleMap.getUiSettings().setTiltGesturesEnabled(false);
 
         TextView tvTimeInfo = findViewById(R.id.timeInfo);
         s = utils.long2DateDayTime(locLogs.get(0).logTime)+"~"+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime);
@@ -177,12 +163,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             if (cursor.moveToFirst()) {
                 locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
                 locLogs = new ArrayList<>();
-                totalDistance = 0;
-
                 prevLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
                 prevLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
                 do {
-                    thisTime = cursor.getLong(cursor.getColumnIndex("logTime"));
+                    long thisTime = cursor.getLong(cursor.getColumnIndex("logTime"));
                     nowLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
                     nowLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
                     locLogs.add(new LocLog(thisTime, nowLatitude, nowLongitude));
@@ -190,7 +174,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     if (nowLatitude < locSouth) locSouth = nowLatitude;
                     if (nowLongitude > locEast) locEast = nowLongitude;
                     if (nowLongitude < locWest) locWest = nowLongitude;
-                    totalDistance += mapUtils.getShortDistance();
                 } while (cursor.moveToNext());
             }
         }
@@ -199,7 +182,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             utils.log("no data",utils.long2DateDay(startTime)+" "+utils.long2Time(startTime)+" ~ "+utils.long2DateDay(finishTime)+" "+utils.long2Time(finishTime));
             return true;
         }
-
         utils.log("cursor","W"+ locWest +" E"+ locEast +" S"+ locSouth +" N"+ locNorth);
         return false;
     }

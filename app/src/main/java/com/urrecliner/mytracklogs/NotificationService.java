@@ -13,6 +13,13 @@ import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
 
+import static com.urrecliner.mytracklogs.Vars.ACTION_EXIT;
+import static com.urrecliner.mytracklogs.Vars.ACTION_INIT;
+import static com.urrecliner.mytracklogs.Vars.ACTION_PAUSE;
+import static com.urrecliner.mytracklogs.Vars.ACTION_RESTART;
+import static com.urrecliner.mytracklogs.Vars.ACTION_START;
+import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
+import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class NotificationService extends Service {
@@ -24,15 +31,12 @@ public class NotificationService extends Service {
     private RemoteViews mRemoteViews;
     private final String logID = "Notify";
     private int iconId;
-    private static final int GO_STOP = 10011;
-    private static final int PAUSE_RESTART = 10022;
-    private static final int EXIT_APP = 10033;
+    private static final int GO_STOP = 1;
+    private static final int PAUSE_RESTART = 2;
+    private static final int EXIT_APP = 3;
     @Override
     public void onCreate() {
         super.onCreate();
-        if (utils == null)
-            utils = new Utils();
-//        createNotificationChannel();
         mContext = this;
         if (null != mRemoteViews) {
             mRemoteViews.removeAllViews(R.layout.notification_bar);
@@ -47,53 +51,69 @@ public class NotificationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        int operation = intent.getIntExtra("operation", -1);
-        utils.log(logID, "operation : "+operation);
-        if (operation != -1) {
-            switch (operation) {
-                case GO_STOP:
-                    MainActivity.notificationBarTouched(0);
-                    break;
-                case PAUSE_RESTART:
-                    MainActivity.notificationBarTouched(1);
-                    break;
-                case EXIT_APP:
-                    MainActivity.notificationBarTouched(2);
-                    break;
-            }
+        int operation = -1;
+        try {
+            operation = intent.getIntExtra("operation",-1);
+        } catch (Exception e) {
+            operation = -11;
             return START_STICKY;
         }
-        int status = intent.getIntExtra("status",0);
+        utils.log(logID, "operation : " + operation);
+        if (operation != -1) {
+            MainActivity.notificationBarTouched(operation);
+            return START_STICKY;
+        }
+        String action = intent.getStringExtra("action");
+        if (action == null)
+            action = ACTION_INIT;
+        utils.log(logID, "action "+action);
         createNotification();
-        switch (status) {
-            case 0: // load at first time
+        switch (action) {
+            case ACTION_UPDATE:
+                mRemoteViews.setTextViewText(R.id.nLaps,intent.getStringExtra("laps"));
+                break;
+            case ACTION_INIT:
+                mBuilder.setSmallIcon(R.mipmap.my_track_log_small);
                 mRemoteViews.setTextViewText(R.id.nDateTime, "Ready to\nStart");
+                mRemoteViews.setTextViewText(R.id.nLaps,"");
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_start);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.GONE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.VISIBLE);
                 break;
-            case 1: // Start pressed, set Start Date
-                mRemoteViews.setTextViewText(R.id.nDateTime, intent.getStringExtra("dateTime"));
+            case ACTION_START:
+                mBuilder.setSmallIcon(R.mipmap.button_start);
+                mRemoteViews.setTextViewText(R.id.nDateTime,
+                        utils.long2DateDay(System.currentTimeMillis())+"\n"+utils.long2Time(System.currentTimeMillis()));
                 mRemoteViews.setTextViewText(R.id.nLaps,"");
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_stop);
                 mRemoteViews.setImageViewResource(R.id.nPause, R.mipmap.button_pause);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.VISIBLE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.GONE);
                 break;
-            case 2: // update distance, minutes
-                mRemoteViews.setTextViewText(R.id.nLaps,intent.getStringExtra("laps"));
-                break;
-            case 3: // end recording
+            case ACTION_STOP:
+                mBuilder.setSmallIcon(R.mipmap.button_stop);
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_start);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.GONE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.VISIBLE);
                 break;
-            case 4: // pause pressed
+            case ACTION_PAUSE:
+                mBuilder.setSmallIcon(R.mipmap.button_pause);
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_stop);
                 mRemoteViews.setImageViewResource(R.id.nPause, R.mipmap.button_restart);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.VISIBLE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.GONE);
                 break;
+            case ACTION_RESTART:
+                mBuilder.setSmallIcon(R.mipmap.button_start);
+                mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_stop);
+                mRemoteViews.setImageViewResource(R.id.nPause, R.mipmap.button_pause);
+                mRemoteViews.setViewVisibility(R.id.nPause, View.VISIBLE);
+                mRemoteViews.setViewVisibility(R.id.nExit, View.GONE);
+                break;
+            case ACTION_EXIT:
+                mBuilder = null;
+                mRemoteViews = null;
+                return START_NOT_STICKY;
         }
         startForeground(111, mBuilder.build());
         return START_STICKY;
@@ -108,11 +128,11 @@ public class NotificationService extends Service {
         }
         if (null == mBuilder) {
             mBuilder = new NotificationCompat.Builder(mContext,"default")
-                    .setSmallIcon(R.mipmap.button_pause)
+                    .setSmallIcon(R.mipmap.my_track_log_small)
                     .setContent(mRemoteViews)
                     .setOnlyAlertOnce(true)
-                    .setAutoCancel(false)
-                    .setOngoing(true);
+                    .setAutoCancel(true)
+                    .setOngoing(false);
         }
 
         Intent mainIntent = new Intent(mContext, MainActivity.class);
@@ -135,14 +155,6 @@ public class NotificationService extends Service {
         PendingIntent exitPI = PendingIntent.getService(mContext, 3, exitIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(exitPI);
         mRemoteViews.setOnClickPendingIntent(R.id.nExit, exitPI);
-
-    }
-
-    private void updateRemoteViews(String dateTime, String meters, int iconId) {
-        utils.log(logID, "dateTime "+dateTime);
-        mRemoteViews.setImageViewResource(R.id.nGoStop, iconId);
-        mRemoteViews.setTextViewText(R.id.nDateTime, dateTime);
-        mRemoteViews.setTextViewText(R.id.nLaps, meters);
     }
 
     @Override

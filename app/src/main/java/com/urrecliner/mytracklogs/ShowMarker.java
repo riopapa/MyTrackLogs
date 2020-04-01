@@ -16,8 +16,7 @@ import java.util.ArrayList;
 
 class ShowMarker {
 
-    private double lat, lng;
-    private GoogleMap mainMap;
+    private GoogleMap thisMap;
     private Marker markerStart, markerFinish, markerHere;
     private Activity showActivity;
     private LatLng latLng;
@@ -29,13 +28,12 @@ class ShowMarker {
         if (markerHere != null) markerHere.remove();
         markerStart = null; markerFinish = null; markerHere = null;
         showActivity = activity;
-        mainMap = map;
+        thisMap = map;
         endCap = new CustomCap(
-                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
+                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 4);
     }
 
-    void drawStart (double latitude, double longitude) {
-        latLng = new LatLng(latitude, longitude);
+    void drawStart (final double latitude, final double longitude) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -44,9 +42,9 @@ class ShowMarker {
                 showActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        markerStart = mainMap.addMarker(new MarkerOptions()
-                                .zIndex(2000f)
-                                .position(latLng)
+                        markerStart = thisMap.addMarker(new MarkerOptions()
+                                .zIndex(200f)
+                                .position(new LatLng(latitude, longitude))
                                 .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_start)));
                     }
                 });
@@ -54,8 +52,7 @@ class ShowMarker {
         });
     }
 
-    void drawFinish (double latitude, double longitude) {
-        latLng = new LatLng(latitude, longitude);
+    void drawFinish (final double latitude, final double longitude) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -64,9 +61,9 @@ class ShowMarker {
                 showActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        markerFinish = mainMap.addMarker(new MarkerOptions()
-                                .zIndex(3000f)
-                                .position(latLng)
+                        markerFinish = thisMap.addMarker(new MarkerOptions()
+                                .zIndex(300f)
+                                .position(new LatLng(latitude, longitude))
                                 .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_finish)));
                     }
                 });
@@ -74,8 +71,7 @@ class ShowMarker {
         });
     }
 
-    void drawHere (double latitude, double longitude) {
-        latLng = new LatLng(latitude, longitude);
+    void drawHere (final double latitude, final double longitude) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -84,9 +80,9 @@ class ShowMarker {
                 showActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        markerHere = mainMap.addMarker(new MarkerOptions()
+                        markerHere = thisMap.addMarker(new MarkerOptions()
                                 .zIndex(10000f)
-                                .position(latLng)
+                                .position(new LatLng(latitude, longitude))
                                 .icon(BitmapDescriptorFactory.fromResource(R.mipmap.my_face)));
                     }
                 });
@@ -96,7 +92,7 @@ class ShowMarker {
 
     private static final int POLYLINE_STROKE_WIDTH_PX = 6;
 
-    void drawPoly (final ArrayList<LatLng> listLatLng) {
+    void drawLine(final ArrayList<LatLng> listLatLng) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -108,7 +104,7 @@ class ShowMarker {
                         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
                         polyOptions.endCap(endCap);
                         polyOptions.addAll(listLatLng);
-                        mainMap.addPolyline(polyOptions);
+                        thisMap.addPolyline(polyOptions);
                     }
                 });
             }
