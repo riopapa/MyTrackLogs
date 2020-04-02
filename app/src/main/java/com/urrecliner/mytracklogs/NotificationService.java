@@ -63,6 +63,7 @@ public class NotificationService extends Service {
             MainActivity.notificationBarTouched(operation);
             return START_STICKY;
         }
+
         String action = intent.getStringExtra("action");
         if (action == null)
             action = ACTION_INIT;

@@ -2,6 +2,7 @@ package com.urrecliner.mytracklogs;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -168,13 +169,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void goStop_Clicked() {
         if (modeStarted) {  // STOP
-            modeStarted = false;
-            modePaused= false;
-            endTrackLog();
-            fabGoStop.setImageResource(R.mipmap.button_start);
-            fabPause.setAlpha(0.2f);
-            utils.deleteOldLogFiles();
-            updateNotification(ACTION_STOP);
+            confirmFinish();
         }
         else {  // START
             modeStarted = true;
@@ -186,6 +181,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             updateNotification(ACTION_START);
         }
     }
+
+    void finish_tracking() {
+        modeStarted = false;
+        modePaused = false;
+        endTrackLog();
+        fabGoStop.setImageResource(R.mipmap.button_start);
+        fabPause.setAlpha(0.2f);
+        utils.deleteOldLogFiles();
+        updateNotification(ACTION_STOP);
+    }
+
 
     void pauseRestart_Clicked() {
         if (modeStarted) {
@@ -394,6 +400,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case 3: // EXIT
                 exit_Application();
                 break;
+            case 9: // FINISH CONFIRMED
+                finish_tracking();
+                break;
             default:
                 utils.log(logID, "Touch Code error "+operation);
         }
@@ -471,6 +480,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             default:
         }
         startService(updateIntent);
+    }
+
+    private void confirmFinish() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
+        builder.setTitle("Confirm Finish ");
+        String s = "Are you sure to finish tracking?";
+        builder.setMessage(s);
+        builder.setNegativeButton("Yes, Finish",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        notifyAction.sendEmptyMessage(9);
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
     }
 
     // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓
