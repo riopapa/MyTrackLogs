@@ -103,7 +103,6 @@ class GPSTracker extends Service implements LocationListener {
     public void onLocationChanged(Location location) {
         latitude = location.getLatitude();
         longitude = location.getLongitude();
-//        utils.log("GPS",latitude+" x "+longitude+" accuracy "+location.getAccuracy());
         MainActivity.locationUpdated(latitude, longitude);
     }
 

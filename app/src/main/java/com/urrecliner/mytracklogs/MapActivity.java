@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -112,19 +113,26 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         double fullMapDistance = mapUtils.getFullMapDistance();
         int mapScale = mapUtils.getMapScale(fullMapDistance);
 
+        AnimatedColor animatedColor = new AnimatedColor(0xFF0000, 0x0000FF);
         CustomCap endCap = new CustomCap(BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 12);
         PolylineOptions polyOptions = new PolylineOptions();
-        polyOptions.color(getColor(R.color.trackRoute));
         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
-        polyOptions.pattern(PATTERN_POLYLINE_MINE);
+//        polyOptions.pattern(PATTERN_POLYLINE_MINE);
         polyOptions.endCap(endCap);
 
+//        ff0000, 0000ff
         listLatLng = new ArrayList<>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
 
         for (int i = 0; i < locLogs.size()-1; i++) {
             listLatLng.set(0, new LatLng(locLogs.get(i).getLatitude(), locLogs.get(i).getLongitude()));
             listLatLng.set(1, new LatLng(locLogs.get(i+1).getLatitude(), locLogs.get(i+1).getLongitude()));
             polyOptions.addAll(listLatLng);
+            float ratio = (float) i / (float) locLogs.size();
+            int color = animatedColor.with(ratio);
+            polyOptions.color(color);
+            utils.log(logID, ratio+" " +Integer.toHexString(color));
+//            red += 0x10000; green +=0x100; blue++;
+//            utils.log(logID,"new Color R:"+Integer.toHexString(red)+" G:"+Integer.toHexString(green)+" B:"+Integer.toHexString(blue)+" Result "+Integer.toHexString(0xFF000000 | red | green | blue));
             googleMap.addPolyline(polyOptions);
         }
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2), mapScale));
@@ -148,6 +156,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             TextView tvLog = findViewById(R.id.logInfo);
             tvLog.setText(s);
         }
+    }
+
+    private int blendColors(int from, int to, float ratio) {
+        final float inverseRatio = 1f - ratio;
+
+        final float r = Color.red(to) * ratio + Color.red(from) * inverseRatio;
+        final float g = Color.green(to) * ratio + Color.green(from) * inverseRatio;
+        final float b = Color.blue(to) * ratio + Color.blue(from) * inverseRatio;
+
+        return Color.rgb((int) r, (int) g, (int) b);
     }
 
     private boolean retrieveDBLog() {

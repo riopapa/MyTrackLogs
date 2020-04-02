@@ -169,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void goStop_Clicked() {
         if (modeStarted) {  // STOP
-            confirmFinish();
+            confirmFinish(9);
         }
         else {  // START
             modeStarted = true;
@@ -403,20 +403,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case 9: // FINISH CONFIRMED
                 finish_tracking();
                 break;
+            case 10:
+                finish_tracking();
+                exit_Application();
             default:
-                utils.log(logID, "Touch Code error "+operation);
+                utils.log(logID, "* * * * * Touch Code error "+operation);
         }
     }
 
     @Override
     public void onBackPressed() {
-        finish();
-        exit_Application();
+        if (modeStarted)
+            confirmFinish(10);
     }
 
     void exit_Application() {
-        if (modeStarted)
-            endTrackLog();
+        utils.log(logID,""+modeStarted);
+//            endTrackLog();
         updateNotification(ACTION_EXIT);
         new Timer().schedule(new TimerTask() {
             public void run() {
@@ -482,7 +485,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startService(updateIntent);
     }
 
-    private void confirmFinish() {
+    private void confirmFinish(final int what) {
         AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
         builder.setTitle("Confirm Finish ");
         String s = "Are you sure to finish tracking?";
@@ -490,7 +493,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.setNegativeButton("Yes, Finish",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        notifyAction.sendEmptyMessage(9);
+                        notifyAction.sendEmptyMessage(what);
                     }
                 });
         AlertDialog dialog = builder.create();

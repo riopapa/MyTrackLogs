@@ -1,6 +1,7 @@
 package com.urrecliner.mytracklogs;
 
 
+import android.app.ActivityManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -12,6 +13,8 @@ import android.view.View;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
+
+import java.util.List;
 
 import static com.urrecliner.mytracklogs.Vars.ACTION_EXIT;
 import static com.urrecliner.mytracklogs.Vars.ACTION_INIT;
@@ -34,6 +37,7 @@ public class NotificationService extends Service {
     private static final int GO_STOP = 1;
     private static final int PAUSE_RESTART = 2;
     private static final int EXIT_APP = 3;
+    private static final int SHOW_MAIN = 4;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -55,19 +59,33 @@ public class NotificationService extends Service {
         try {
             operation = intent.getIntExtra("operation",-1);
         } catch (Exception e) {
-            operation = -11;
             return START_STICKY;
         }
         utils.log(logID, "operation : " + operation);
-        if (operation != -1) {
+        if (operation == 4) {
+            ActivityManager am = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
+            List<ActivityManager.RunningTaskInfo> tasks =am.getRunningTasks(10); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
+            if(!tasks.isEmpty()) {
+                int tasksSize = tasks.size();
+                utils.log(logID, "tasksSize "+tasksSize);
+                for(int i = 0; i < tasksSize;  i++) {
+                    ActivityManager.RunningTaskInfo taskInfo = tasks.get(i);
+                    if(taskInfo.topActivity.getPackageName().equals(mContext.getPackageName())) {
+                        am.moveTaskToFront(taskInfo.id, 0);
+                    }
+                }
+            }
+        }
+        else if (operation != -1) {
             MainActivity.notificationBarTouched(operation);
             return START_STICKY;
         }
 
         String action = intent.getStringExtra("action");
-        if (action == null)
-            action = ACTION_INIT;
         utils.log(logID, "action "+action);
+        if (action == null)
+            return START_NOT_STICKY;
+
         createNotification();
         switch (action) {
             case ACTION_UPDATE:
@@ -136,8 +154,14 @@ public class NotificationService extends Service {
                     .setOngoing(false);
         }
 
-        Intent mainIntent = new Intent(mContext, MainActivity.class);
-        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
+//        Intent mainIntent = new Intent(mContext, MainActivity.class);
+//        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
+
+        Intent barIntent = new Intent(this, NotificationService.class);
+        barIntent.putExtra("operation", SHOW_MAIN);
+        PendingIntent barPI = PendingIntent.getService(mContext, 4, barIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(barPI);
+        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, barPI);
 
         Intent goStopIntent = new Intent(this, NotificationService.class);
         goStopIntent.putExtra("operation", GO_STOP);

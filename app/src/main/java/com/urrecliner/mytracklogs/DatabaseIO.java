@@ -29,7 +29,6 @@ class DatabaseIO extends SQLiteOpenHelper {
 
     DatabaseIO() {
         super(mContext, utils.getPackageDirectory().toString()+ "/" + DATABASE_NAME, null, SCHEMA_VERSION);
-//        utils.log("Start","DatabaseIO");
     }
 
     @Override
