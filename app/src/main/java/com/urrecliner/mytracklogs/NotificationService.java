@@ -2,11 +2,13 @@ package com.urrecliner.mytracklogs;
 
 
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.IBinder;
 import android.view.View;
@@ -23,6 +25,8 @@ import static com.urrecliner.mytracklogs.Vars.ACTION_RESTART;
 import static com.urrecliner.mytracklogs.Vars.ACTION_START;
 import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
 import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
+import static com.urrecliner.mytracklogs.Vars.mainActivity;
+import static com.urrecliner.mytracklogs.Vars.modeStarted;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class NotificationService extends Service {
@@ -59,26 +63,22 @@ public class NotificationService extends Service {
         try {
             operation = intent.getIntExtra("operation",-1);
         } catch (Exception e) {
+            utils.log(logID, "operation EXCEPTION");
             return START_STICKY;
         }
         utils.log(logID, "operation : " + operation);
         if (operation == 4) {
-            ActivityManager am = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
-            List<ActivityManager.RunningTaskInfo> tasks =am.getRunningTasks(10); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
-            if(!tasks.isEmpty()) {
-                int tasksSize = tasks.size();
-                utils.log(logID, "tasksSize "+tasksSize);
-                for(int i = 0; i < tasksSize;  i++) {
-                    ActivityManager.RunningTaskInfo taskInfo = tasks.get(i);
-                    if(taskInfo.topActivity.getPackageName().equals(mContext.getPackageName())) {
-                        am.moveTaskToFront(taskInfo.id, 0);
-                    }
-                }
-            }
+            showInForeground();
         }
         else if (operation != -1) {
-            MainActivity.notificationBarTouched(operation);
-            return START_STICKY;
+            if (operation == 1 && modeStarted) {
+                showInForeground();
+                confirmFinish();
+            }
+            else {
+                MainActivity.notificationBarTouched(operation);
+                return START_STICKY;
+            }
         }
 
         String action = intent.getStringExtra("action");
@@ -137,6 +137,41 @@ public class NotificationService extends Service {
         startForeground(111, mBuilder.build());
         return START_STICKY;
     }
+
+    private void showInForeground() {
+        ActivityManager am = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> tasks =am.getRunningTasks(10); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
+        if(!tasks.isEmpty()) {
+            int tasksSize = tasks.size();
+            utils.log(logID, "tasksSize "+tasksSize);
+            for(int i = 0; i < tasksSize;  i++) {
+                ActivityManager.RunningTaskInfo taskInfo = tasks.get(i);
+                utils.log(logID, taskInfo.topActivity.getPackageName()+" vs "+ mContext.getPackageName());
+                if(taskInfo.topActivity.getPackageName().equals(mContext.getPackageName())) {
+                    utils.log(logID, taskInfo.topActivity.getPackageName()+" EQUALS "+ mContext.getPackageName());
+                    am.moveTaskToFront(taskInfo.id, 0);
+                }
+            }
+        }
+
+    }
+
+    private void confirmFinish() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
+        builder.setTitle("Confirm Finish ");
+        String s = "Are you sure to finish tracking?";
+        builder.setMessage(s);
+        builder.setNegativeButton("Yes, Finish",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        MainActivity.notificationBarTouched(9);
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
+    }
+
 
     private void createNotification() {
 

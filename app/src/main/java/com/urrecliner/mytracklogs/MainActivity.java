@@ -46,6 +46,8 @@ import static com.urrecliner.mytracklogs.Vars.gpsTracker;
 import static com.urrecliner.mytracklogs.Vars.mContext;
 import static com.urrecliner.mytracklogs.Vars.mainActivity;
 import static com.urrecliner.mytracklogs.Vars.mapUtils;
+import static com.urrecliner.mytracklogs.Vars.modePaused;
+import static com.urrecliner.mytracklogs.Vars.modeStarted;
 import static com.urrecliner.mytracklogs.Vars.nowLatitude;
 import static com.urrecliner.mytracklogs.Vars.nowLongitude;
 import static com.urrecliner.mytracklogs.Vars.prevLatitude;
@@ -59,7 +61,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     final static String logID = "Main";
     private static Handler updateMarker, notifyAction;
-    private boolean modeStarted = false, modePaused = false;
     FloatingActionButton fabGoStop, fabWalkDrive, fabPause;
     long prevLogTime, elapsedTime;
     TextView tvStartDate, tvStartTime, tvMeter, tvMinutes;
@@ -169,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void goStop_Clicked() {
         if (modeStarted) {  // STOP
-            confirmFinish(9);
+            confirmFinish();
         }
         else {  // START
             modeStarted = true;
@@ -256,6 +257,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         databaseIO.trackInsert(startTime);
         locSouth = startLatitude-0.01; locNorth = startLatitude+0.01;
         locWest = startLongitude-0.01; locEast = startLongitude+0.01;
+        mainMap.clear();
     }
 
     void endTrackLog() {
@@ -360,6 +362,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void calcMapScale() {
         double fullMapDistance = mapUtils.getFullMapDistance();
         mapScale = mapUtils.getMapScale(fullMapDistance);
+        utils.log(logID, "mapscale "+mapScale);
     }
 
     @Override
@@ -370,11 +373,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         showMarker.init(mainActivity, googleMap);
         nowLatitude = gpsTracker.getLatitude();
         nowLongitude = gpsTracker.getLongitude();
+        locSouth = startLatitude-0.1; locNorth = startLatitude+0.1;
+        locWest = startLongitude-0.1; locEast = startLongitude+0.1;
         calcMapScale();
         utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude);
         showMarker.drawHere(nowLatitude, nowLongitude);
 //        markerHandler.sendEmptyMessage(MARK_HERE);
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), 16));
     }
 
     static double latitudeGPS, longitudeGPS;
@@ -398,14 +403,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 pauseRestart_Clicked();
                 break;
             case 3: // EXIT
-                exit_Application();
+                if (!modeStarted)
+                    exit_Application();
                 break;
             case 9: // FINISH CONFIRMED
                 finish_tracking();
-                break;
-            case 10:
-                finish_tracking();
-                exit_Application();
             default:
                 utils.log(logID, "* * * * * Touch Code error "+operation);
         }
@@ -413,8 +415,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onBackPressed() {
-        if (modeStarted)
-            confirmFinish(10);
+        if (!modeStarted)
+            exit_Application();
+        else
+            confirmFinish();
     }
 
     void exit_Application() {
@@ -485,7 +489,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startService(updateIntent);
     }
 
-    private void confirmFinish(final int what) {
+    private void confirmFinish() {
         AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
         builder.setTitle("Confirm Finish ");
         String s = "Are you sure to finish tracking?";
@@ -493,7 +497,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.setNegativeButton("Yes, Finish",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        notifyAction.sendEmptyMessage(what);
+                        notifyAction.sendEmptyMessage(9);
                     }
                 });
         AlertDialog dialog = builder.create();

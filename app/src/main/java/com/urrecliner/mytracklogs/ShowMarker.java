@@ -21,16 +21,24 @@ class ShowMarker {
     private Activity showActivity;
     private LatLng latLng;
     private CustomCap endCap;
+    private PolylineOptions polyOptions;
+    private static final int POLYLINE_STROKE_WIDTH_PX = 6;
 
     void init(Activity activity, GoogleMap map) {
+        showActivity = activity;
+        thisMap = map;
+
         if (markerStart != null) markerStart.remove();
         if (markerFinish != null) markerFinish.remove();
         if (markerHere != null) markerHere.remove();
         markerStart = null; markerFinish = null; markerHere = null;
-        showActivity = activity;
-        thisMap = map;
         endCap = new CustomCap(
-                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 4);
+                BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 10);
+        polyOptions = new PolylineOptions();
+        polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
+//        polyOptions.pattern(PATTERN_POLYLINE_MINE);
+        polyOptions.color(showActivity.getColor(R.color.trackRoute));
+        polyOptions.endCap(endCap);
     }
 
     void drawStart (final double latitude, final double longitude) {
@@ -90,8 +98,6 @@ class ShowMarker {
         });
     }
 
-    private static final int POLYLINE_STROKE_WIDTH_PX = 6;
-
     void drawLine(final ArrayList<LatLng> listLatLng) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
@@ -99,10 +105,6 @@ class ShowMarker {
                 showActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        PolylineOptions polyOptions = new PolylineOptions();
-                        polyOptions.color(showActivity.getColor(R.color.trackRoute));
-                        polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
-                        polyOptions.endCap(endCap);
                         polyOptions.addAll(listLatLng);
                         thisMap.addPolyline(polyOptions);
                     }
@@ -110,5 +112,4 @@ class ShowMarker {
             }
         });
     }
-
 }
