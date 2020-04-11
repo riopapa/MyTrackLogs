@@ -98,6 +98,11 @@ class ShowMarker {
         });
     }
 
+    void drawHereOff() {
+        if (markerHere != null)
+            markerHere.remove();
+    }
+
     void drawLine(final ArrayList<LatLng> listLatLng) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override

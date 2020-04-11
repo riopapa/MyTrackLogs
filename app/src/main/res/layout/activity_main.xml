@@ -15,15 +15,14 @@
 
     <LinearLayout
         android:id="@+id/timeInfo"
-        android:layout_width="100dp"
+        android:layout_width="120dp"
         android:layout_height="wrap_content"
         android:background="@drawable/back_round"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:padding="8dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@id/trackInfo"
-        android:layout_margin="4dp"
         android:orientation="vertical" >
 
         <TextView
@@ -43,7 +42,7 @@
             android:layout_height="wrap_content"
             android:text="03-11(목)"
             android:textStyle="bold"
-            android:textSize="16sp" />
+            android:textSize="20sp" />
         <TextView
             android:id="@+id/startTime"
             android:layout_width="wrap_content"
@@ -53,20 +52,19 @@
             android:layout_height="match_parent"
             android:text="00:99"
             android:textStyle="bold"
-            android:textSize="16sp" />
+            android:textSize="20sp" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/trackInfo"
-        android:layout_width="100dp"
+        android:layout_width="120dp"
         android:layout_height="wrap_content"
         android:background="@drawable/back_round"
+        android:layout_marginTop="16dp"
         android:padding="8dp"
-        android:layout_marginTop="32dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toRightOf="@id/timeInfo"
         app:layout_constraintRight_toRightOf="parent"
-        android:layout_margin="4dp"
         android:orientation="vertical" >
 
         <TextView
@@ -86,7 +84,7 @@
             android:textColor="@color/information"
             android:text="99 분"
             android:textStyle="bold"
-            android:textSize="16sp" />
+            android:textSize="20sp" />
 
         <TextView
             android:id="@+id/meter"
@@ -96,7 +94,7 @@
             android:textColor="@color/information"
             android:text="99m"
             android:textStyle="bold"
-            android:textSize="16sp" />
+            android:textSize="20sp" />
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

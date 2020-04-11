@@ -13,6 +13,9 @@ import android.os.IBinder;
 
 import androidx.core.app.ActivityCompat;
 
+import static com.urrecliner.mytracklogs.Vars.gpsUpdateTime;
+import static com.urrecliner.mytracklogs.Vars.utils;
+
 class GPSTracker extends Service implements LocationListener {
 
     private final Context mContext;
@@ -20,13 +23,12 @@ class GPSTracker extends Service implements LocationListener {
     boolean isNetworkEnabled = false;
     boolean canGetLocation = false;
     Location location; // Location
-    double latitude; // Latitude
-    double longitude; // Longitude
+    double gpsLatitude, gpsLongitude;
 
     private static final float MIN_DISTANCE_WALK = 5; // meters
     private static final float MIN_DISTANCE_DRIVE = 50;
-    private static final long MIN_TIME_WALK_UPDATES = 2000;
-    private static final long MIN_TIME_DRIVE_UPDATES = 10000;
+    private static final long MIN_TIME_WALK_UPDATES = 1000;
+    private static final long MIN_TIME_DRIVE_UPDATES = 1000;
     protected LocationManager locationManager;
 
     public GPSTracker(Context context) {
@@ -62,8 +64,8 @@ class GPSTracker extends Service implements LocationListener {
                         location = locationManager
                                 .getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (location != null) {
-                            latitude = location.getLatitude();
-                            longitude = location.getLongitude();
+                            gpsLatitude = location.getLatitude();
+                            gpsLongitude = location.getLongitude();
                         }
                     }
                 }
@@ -78,8 +80,8 @@ class GPSTracker extends Service implements LocationListener {
                         location = locationManager
                                 .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                         if (location != null) {
-                            latitude = location.getLatitude();
-                            longitude = location.getLongitude();
+                            gpsLatitude = location.getLatitude();
+                            gpsLongitude = location.getLongitude();
                         }
                     }
                 }
@@ -96,14 +98,16 @@ class GPSTracker extends Service implements LocationListener {
         }
     }
 
-    double getLatitude() { return latitude; }
-    double getLongitude() { return longitude; }
+    double getGpsLatitude() { return gpsLatitude; }
+    double getGpsLongitude() { return gpsLongitude; }
 
     @Override
     public void onLocationChanged(Location location) {
-        latitude = location.getLatitude();
-        longitude = location.getLongitude();
-        MainActivity.locationUpdated(latitude, longitude);
+        gpsLatitude = location.getLatitude();
+        gpsLongitude = location.getLongitude();
+        gpsUpdateTime = System.currentTimeMillis();
+        utils.log("update loc", gpsLatitude+" x "+gpsLongitude);
+        MainActivity.locationUpdated(gpsLatitude, gpsLongitude);
     }
 
     @Override

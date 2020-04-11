@@ -38,8 +38,7 @@ class MapUtils {
             if (fullMapDistance * 10 < scaleMap[mapScale])
                 break;
         }
-        mapScale = 19 - mapScale;
-        return mapScale;
+        return (mapScale < 2) ? 18 : (19-mapScale);
     }
 
 

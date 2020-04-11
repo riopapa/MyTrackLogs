@@ -16,6 +16,7 @@ class Vars {
     static Utils utils;
     static DatabaseIO databaseIO;
     static GPSTracker gpsTracker;
+    static long gpsUpdateTime = 0;
     static MapUtils mapUtils;
     static ShowMarker showMarker;
 
