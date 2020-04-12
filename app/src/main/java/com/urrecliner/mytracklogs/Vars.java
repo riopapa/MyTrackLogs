@@ -43,5 +43,12 @@ class Vars {
     final static String ACTION_UPDATE = "update";
     final static String ACTION_EXIT = "exit";
 
+    static final int NOTIFICATION_BAR_NO_ACTION = -1;
+    static final int NOTIFICATION_BAR_GO_STOP = 1;
+    static final int NOTIFICATION_BAR_PAUSE_RESTART = 2;
+    static final int NOTIFICATION_BAR_EXIT_APP = 3;
+    static final int NOTIFICATION_BAR_SHOW_MAIN = 4;
+    static final int NOTIFICATION_BAR_FINISH = 5;
+
 }
 

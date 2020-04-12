@@ -25,6 +25,11 @@ import static com.urrecliner.mytracklogs.Vars.ACTION_RESTART;
 import static com.urrecliner.mytracklogs.Vars.ACTION_START;
 import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
 import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_EXIT_APP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_GO_STOP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_NO_ACTION;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_PAUSE_RESTART;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_SHOW_MAIN;
 import static com.urrecliner.mytracklogs.Vars.mainActivity;
 import static com.urrecliner.mytracklogs.Vars.modeStarted;
 import static com.urrecliner.mytracklogs.Vars.utils;
@@ -38,11 +43,6 @@ public class NotificationService extends Service {
     private RemoteViews mRemoteViews;
     private final String logID = "Notify";
     private int iconId;
-    private static final int NOTIFICATION_BAR_GO_STOP = 1;
-    private static final int NOTIFICATION_BAR_PAUSE_RESTART = 2;
-    private static final int NOTIFICATION_BAR_EXIT_APP = 3;
-    private static final int NOTIFICATION_BAR_SHOW_MAIN = 4;
-    private static final int NOTIFICATION_BAR_NO_ACTION = -1;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -67,7 +67,7 @@ public class NotificationService extends Service {
             utils.log(logID, "operation EXCEPTION");
             return START_STICKY;
         }
-        utils.log(logID, "operation : " + operation);
+//        utils.log(logID, "operation : " + operation);
         switch (operation) {
             case NOTIFICATION_BAR_NO_ACTION:
                 break;
@@ -77,7 +77,8 @@ public class NotificationService extends Service {
                 break;
             case NOTIFICATION_BAR_PAUSE_RESTART:
             case NOTIFICATION_BAR_EXIT_APP:
-                return START_STICKY;
+                MainActivity.notificationBarTouched(operation);
+                break;
             case NOTIFICATION_BAR_SHOW_MAIN:
                 showInForeground();
                 break;
@@ -145,12 +146,12 @@ public class NotificationService extends Service {
         List<ActivityManager.RunningTaskInfo> tasks =am.getRunningTasks(10); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
         if(!tasks.isEmpty()) {
             int tasksSize = tasks.size();
-            utils.log(logID, "tasksSize "+tasksSize);
+//            utils.log(logID, "tasksSize "+tasksSize);
             for(int i = 0; i < tasksSize;  i++) {
                 ActivityManager.RunningTaskInfo taskInfo = tasks.get(i);
-                utils.log(logID, taskInfo.topActivity.getPackageName()+" vs "+ mContext.getPackageName());
+//                utils.log(logID, taskInfo.topActivity.getPackageName()+" vs "+ mContext.getPackageName());
                 if(taskInfo.topActivity.getPackageName().equals(mContext.getPackageName())) {
-                    utils.log(logID, taskInfo.topActivity.getPackageName()+" EQUALS "+ mContext.getPackageName());
+//                    utils.log(logID, taskInfo.topActivity.getPackageName()+" EQUALS "+ mContext.getPackageName());
                     am.moveTaskToFront(taskInfo.id, 0);
                 }
             }

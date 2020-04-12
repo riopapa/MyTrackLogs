@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,6 +41,10 @@ import static com.urrecliner.mytracklogs.Vars.ACTION_RESTART;
 import static com.urrecliner.mytracklogs.Vars.ACTION_START;
 import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
 import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_EXIT_APP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_FINISH;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_GO_STOP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_PAUSE_RESTART;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
 import static com.urrecliner.mytracklogs.Vars.gpsTracker;
@@ -76,8 +81,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     double meters = 0;
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
-
     double totSpeed = 0;
+    Timer forceLongUpdate = new Timer();
+    Timer forceShortUpdate = new Timer();
+    final double mapDiff = 0.01f;
 
     ArrayList<LatLng> latLngPos;
     ArrayList<Double> latitudeQues, longitudeQues;
@@ -107,16 +114,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         llTimeInfo.setVisibility(View.INVISIBLE); llTrackInfo.setVisibility(View.INVISIBLE);
 
         gpsTracker = new GPSTracker(mContext);
-        sharePrefer = getSharedPreferences("myTracks", Context.MODE_PRIVATE);
 //        logInterval = sharePrefer.getInt("logInterval", 10) * 1000;
-        gpsTracker.askLocation(isWalk);
+//        startGPSTasks();
+        gpsTracker.startGPSUpdate();
         nowLatitude = gpsTracker.getGpsLatitude();
         nowLongitude = gpsTracker.getGpsLongitude();
         utils.log("Main", "Start app @ "+ nowLatitude +" x "+ nowLongitude);
-
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.mainMap);
-        mapFragment.getMapAsync(this);
+        sharePrefer = getSharedPreferences("myTracks", Context.MODE_PRIVATE);
 
         databaseIO = new DatabaseIO();
         fabWalkDrive = findViewById(R.id.fabWalkDrive);
@@ -165,6 +169,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startService(updateIntent);
             }
         }, 100);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.mainMap);
+        mapFragment.getMapAsync(this);
+
     }
 
     void goStop_Clicked() {
@@ -186,14 +194,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (modeStarted) {
             if (modePaused) {      // already paused, let restart
                 modePaused = false;
-                beginTimerTask();
+                startGPSTasks();
                 beginTime = System.currentTimeMillis();
                 prevLogTime = beginTime;
                 fabPauseRestart.setImageResource(R.mipmap.button_pause);
+                prevLatitude = gpsTracker.getGpsLatitude();
+                prevLongitude = gpsTracker.getGpsLongitude();
                 updateNotification(ACTION_RESTART);
             } else {       // make paused
                 modePaused = true;
-                stopTimerTask();
+                stopGPSTasks();
                 minutes += System.currentTimeMillis() - beginTime;
                 fabPauseRestart.setImageResource(R.mipmap.button_restart);
                 updateNotification(ACTION_PAUSE);
@@ -211,21 +221,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateNotification(ACTION_STOP);
     }
 
-
-    void beginTimerTask() {
-        stopTimerTask();
-        gpsTracker.askLocation(isWalk);
-        prevLatitude = gpsTracker.getGpsLatitude();
-        prevLongitude = gpsTracker.getGpsLongitude();
-    }
-
-    void stopTimerTask()
-    {
-        gpsTracker.stopUsingGPS();
-    }
-
     void beginTrackLog() {
-        gpsTracker.askLocation(isWalk);
+        mainMap.clear();
+        startGPSTasks();
         startTime = System.currentTimeMillis();
         beginTime = startTime;
         latLngPos = new ArrayList<>(); latitudeQues = new ArrayList<>(); longitudeQues = new ArrayList<>();
@@ -243,7 +241,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvStartTime.setText(utils.long2Time(startTime));
         tvMinutes.setText(R.string.zero_minutes);
         tvMeter.setText(R.string.zero_meters);
-        beginTimerTask();
+        prevLatitude = gpsTracker.getGpsLatitude();
+        prevLongitude = gpsTracker.getGpsLongitude();
         llTimeInfo.setVisibility(View.VISIBLE);
         llTrackInfo.setVisibility(View.VISIBLE);
         if (markLines != null) {
@@ -254,19 +253,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
         databaseIO.trackInsert(startTime);
-        locSouth = startLatitude-0.01; locNorth = startLatitude+0.01;
-        locWest = startLongitude-0.01; locEast = startLongitude+0.01;
-        mainMap.clear();
+        locSouth = startLatitude-mapDiff; locNorth = startLatitude+mapDiff;
+        locWest = startLongitude-mapDiff; locEast = startLongitude+mapDiff;
     }
 
     void endTrackLog() {
-        gpsTracker.askLocation(isWalk);
-        stopTimerTask();
         finishTime = System.currentTimeMillis();
         latitudeGPS = gpsTracker.getGpsLatitude(); longitudeGPS = gpsTracker.getGpsLongitude();
-        responseGPSLocation();
-        showMarker.drawHereOff();
-        showMarker.drawFinish(latitudeGPS, longitudeGPS);
+        responseGPSLocation(); responseGPSLocation(); responseGPSLocation();
+        stopGPSTasks();
         calcMapScale();
         mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS), mapScale));
         elapsedTime = minutes + finishTime - beginTime;
@@ -275,10 +270,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));
             dbCount = 0;
 //            databaseIO.trackDelete(startTime);
+        showMarker.drawHereOff();
+        showMarker.drawFinish(latitudeGPS, longitudeGPS);
         updateNotification(ACTION_UPDATE);
         updateNotification(ACTION_STOP);
     }
-
 
     void responseGPSLocation() {
 
@@ -291,7 +287,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         long deltaTime = nowTime - prevLogTime;
         double speed = distance * (60*60) / ((double)deltaTime/1000);   // 269649 car
         if (deltaTime > 1000 && (!isWalk && speed < 600000 && speed > 4000) || (isWalk && speed<45000 && speed>100)) {
-//            markerHandler.sendEmptyMessage(MARK_HERE);
             showMarker.drawHere(nowLatitude, nowLongitude);
             totSpeed += speed;
             latitudeQues.remove(0); longitudeQues.remove(0);
@@ -308,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             showMarker.drawHere(nowLatitude, nowLongitude);
             distance = mapUtils.getShortDistance();
             meters += distance; // * 1.1f;
-            if (dbCount % 2 == 0) {
+            if (dbCount % 4 == 0) {
                 databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
                 databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
             }
@@ -321,8 +316,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dbCount++;
             utils.log("GOOD", "dist " + distance + " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
         }
-//        else
-//            utils.log("X", "BAD " + distance + " XSpeed " + speed+" XTime "+(nowTime-prevLogTime));
+        else
+            utils.log("X", "BAD " + distance + " XSpeed " + speed+" XTime "+(nowTime-prevLogTime));
 
     }
 
@@ -336,23 +331,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void calcMapScale() {
         double fullMapDistance = mapUtils.getFullMapDistance();
         mapScale = mapUtils.getMapScale(fullMapDistance);
-        utils.log(logID, "mapscale "+mapScale);
+        utils.log(logID, "mapScale >> "+mapScale);
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
         mainMap = googleMap;
-        gpsTracker.askLocation(isWalk);
         showMarker.init(mainActivity, googleMap);
         nowLatitude = gpsTracker.getGpsLatitude();
         nowLongitude = gpsTracker.getGpsLongitude();
-        locSouth = startLatitude-0.001f; locNorth = startLatitude+0.001f;
-        locWest = startLongitude-0.001f; locEast = startLongitude+0.001f;
-        utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude);
         showMarker.drawHere(nowLatitude, nowLongitude);
+        utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude+" with scale:"+mapScale);
+        locSouth = startLatitude-mapDiff; locNorth = startLatitude+mapDiff;
+        locWest = startLongitude-mapDiff; locEast = startLongitude+mapDiff;
+        calcMapScale();
         mapScale = 18;
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
+//        startGPSTasks();
     }
 
     static double latitudeGPS, longitudeGPS;
@@ -369,22 +365,62 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void notificationClicked(int operation) {
         utils.log(logID, "notificationClicked "+operation);
         switch (operation) {
-            case 1: // GO_STOP
+            case NOTIFICATION_BAR_GO_STOP: // GO_STOP
                 goStop_Clicked();
                 break;
-            case 2: // PAUSE_RESTART
+            case NOTIFICATION_BAR_PAUSE_RESTART: // PAUSE_RESTART
                 pauseRestart_Clicked();
                 break;
-            case 3: // EXIT
+            case NOTIFICATION_BAR_EXIT_APP: // EXIT
                 if (!modeStarted)
                     exit_Application();
                 break;
-            case 9: // FINISH CONFIRMED
+            case NOTIFICATION_BAR_FINISH: // FINISH CONFIRMED
                 finish_tracking();
                 break;
             default:
                 utils.log(logID, "* * * * * Touch Code error "+operation);
         }
+    }
+
+    void startGPSTasks() {
+
+        TimerTask taskLong = new TimerTask() {
+            @Override
+            public void run() {
+                Handler mHandler = new Handler(Looper.getMainLooper());
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        utils.log(logID, "LONG force ///");
+                        gpsTracker.startGPSUpdate();
+                    }
+                }, 0);
+            }
+        };
+        forceLongUpdate = new Timer();
+        forceLongUpdate.schedule(taskLong,5,120000);
+        TimerTask taskShort = new TimerTask() {
+            @Override
+            public void run() {
+                Handler mHandler = new Handler(Looper.getMainLooper());
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        utils.log(logID, "/// SHORT force");
+                        gpsTracker.inform2Main();
+                    }
+                }, 0);
+            }
+        };
+        forceShortUpdate = new Timer();
+        forceShortUpdate.schedule(taskShort,100,19000);
+    }
+
+    void stopGPSTasks() {
+        forceLongUpdate.cancel();
+        forceShortUpdate.cancel();
+        gpsTracker.stopGPSUpdate();
     }
 
     @Override
@@ -472,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.setNegativeButton("Yes, Finish",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        notifyAction.sendEmptyMessage(9);
+                        notifyAction.sendEmptyMessage(NOTIFICATION_BAR_FINISH);
                     }
                 });
         AlertDialog dialog = builder.create();

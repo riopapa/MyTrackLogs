@@ -127,8 +127,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         for (int i = 0; i < locLogs.size()-2; i++) {
             listLatLng.set(0, new LatLng(locLogs.get(i).getLatitude(), locLogs.get(i).getLongitude()));
             listLatLng.set(1, new LatLng(locLogs.get(i+1).getLatitude(), locLogs.get(i+1).getLongitude()));
-            utils.log(logID, locLogs.get(i).getLatitude()+" x "+ locLogs.get(i).getLongitude());
-//            showMarker.drawLine(listLatLng);
+//            utils.log(logID, locLogs.get(i).getLatitude()+" x "+ locLogs.get(i).getLongitude());
+            showMarker.drawLine(listLatLng);
             polyOptions.addAll(listLatLng);
             googleMap.addPolyline(polyOptions);
         }
@@ -144,7 +144,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //        googleMap.getUiSettings().setTiltGesturesEnabled(false);
 
         TextView tvTimeInfo = findViewById(R.id.timeInfo);
-        s = utils.long2DateDayTime(locLogs.get(0).logTime)+"~"+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime);
+        s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~\n"+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
         tvTimeInfo.setText(s);
         if (iMinutes > 0) {
             s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
