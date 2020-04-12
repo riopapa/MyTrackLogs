@@ -19,5 +19,6 @@
     <color name="startBackground">#66AA5555</color>
     <color name="notifyBar">#ffaBc1a7</color>
     <color name="notifyText">#FF001443</color>
+    <color name="logList">#FF331443</color>
 
 </resources>

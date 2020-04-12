@@ -12,6 +12,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.IBinder;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
@@ -19,19 +20,26 @@ import androidx.core.app.NotificationCompat;
 import java.util.List;
 
 import static com.urrecliner.mytracklogs.Vars.ACTION_EXIT;
+import static com.urrecliner.mytracklogs.Vars.ACTION_HIDE_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.ACTION_INIT;
 import static com.urrecliner.mytracklogs.Vars.ACTION_PAUSE;
 import static com.urrecliner.mytracklogs.Vars.ACTION_RESTART;
+import static com.urrecliner.mytracklogs.Vars.ACTION_SHOW_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.ACTION_START;
 import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
 import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_EXIT_APP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_GO;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_GO_STOP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_HIDE_CONFIRM;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_NO_CONTINUE;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_NO_ACTION;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_PAUSE_RESTART;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_SHOW_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_SHOW_MAIN;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_CONFIRMED_STOP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_YES_STOP;
 import static com.urrecliner.mytracklogs.Vars.mainActivity;
-import static com.urrecliner.mytracklogs.Vars.modeStarted;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class NotificationService extends Service {
@@ -42,7 +50,7 @@ public class NotificationService extends Service {
     NotificationManager mNotificationManager;
     private RemoteViews mRemoteViews;
     private final String logID = "Notify";
-    private int iconId;
+    private boolean yesNOShown = false, isStarted;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -60,34 +68,50 @@ public class NotificationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        int operation = NOTIFICATION_BAR_NO_ACTION;
+        utils.log(logID," start command");
+        int operation;
         try {
             operation = intent.getIntExtra("operation", NOTIFICATION_BAR_NO_ACTION);
         } catch (Exception e) {
             utils.log(logID, "operation EXCEPTION");
             return START_STICKY;
         }
-//        utils.log(logID, "operation : " + operation);
+        utils.log(logID, "operation : " + operation);
         switch (operation) {
             case NOTIFICATION_BAR_NO_ACTION:
                 break;
             case NOTIFICATION_BAR_GO_STOP:
-                showInForeground();
-                MainActivity.notificationBarTouched(operation);
+                if (isStarted)
+                    MainActivity.notificationBarTouched(NOTIFICATION_BAR_SHOW_CONFIRM);
+                else
+                    MainActivity.notificationBarTouched(NOTIFICATION_BAR_GO);
                 break;
-            case NOTIFICATION_BAR_PAUSE_RESTART:
             case NOTIFICATION_BAR_EXIT_APP:
+            case NOTIFICATION_BAR_PAUSE_RESTART:
                 MainActivity.notificationBarTouched(operation);
                 break;
             case NOTIFICATION_BAR_SHOW_MAIN:
                 showInForeground();
                 break;
+            case NOTIFICATION_BAR_YES_STOP:
+                MainActivity.notificationBarTouched(NOTIFICATION_BAR_HIDE_CONFIRM);
+                MainActivity.notificationBarTouched(NOTIFICATION_BAR_CONFIRMED_STOP);
+                break;
+            case NOTIFICATION_BAR_NO_CONTINUE:
+                MainActivity.notificationBarTouched(NOTIFICATION_BAR_HIDE_CONFIRM);
+                yesNOShown = false;
+                break;
+            default:
+                utils.log(logID, "Invalid operation "+operation);
         }
 
         String action = intent.getStringExtra("action");
-        utils.log(logID, "action "+action);
-        if (action == null)
+        if (action == null) {
+            utils.log(logID, "action is NULL, nothing to do");
             return START_NOT_STICKY;
+        }
+        else
+            utils.log(logID, "action "+action);
 
         createNotification();
         switch (action) {
@@ -96,27 +120,34 @@ public class NotificationService extends Service {
                 break;
             case ACTION_INIT:
                 mBuilder.setSmallIcon(R.mipmap.my_track_log_small);
-                mRemoteViews.setTextViewText(R.id.nDateTime, "Ready to\nStart");
+                mRemoteViews.setTextViewText(R.id.nDateTime, getString(R.string.press_start));
                 mRemoteViews.setTextViewText(R.id.nLaps,"");
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_start);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.GONE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.VISIBLE);
+                mRemoteViews.setViewVisibility(R.id.nConfirm, View.GONE);
+                isStarted = false;
                 break;
             case ACTION_START:
+            case ACTION_RESTART:
                 mBuilder.setSmallIcon(R.mipmap.button_start);
-                mRemoteViews.setTextViewText(R.id.nDateTime,
-                        utils.long2DateDay(System.currentTimeMillis())+"\n"+utils.long2Time(System.currentTimeMillis()));
-                mRemoteViews.setTextViewText(R.id.nLaps,"");
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_stop);
                 mRemoteViews.setImageViewResource(R.id.nPause, R.mipmap.button_pause);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.VISIBLE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.GONE);
+                if (action.equals(ACTION_START)) {
+                    mRemoteViews.setTextViewText(R.id.nDateTime,
+                            utils.long2DateDay(System.currentTimeMillis()) + "\n" + utils.long2Time(System.currentTimeMillis()));
+                    mRemoteViews.setTextViewText(R.id.nLaps, "");
+                }
+                isStarted = true;
                 break;
             case ACTION_STOP:
                 mBuilder.setSmallIcon(R.mipmap.button_stop);
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_start);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.GONE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.VISIBLE);
+                isStarted = false;
                 break;
             case ACTION_PAUSE:
                 mBuilder.setSmallIcon(R.mipmap.button_pause);
@@ -125,12 +156,13 @@ public class NotificationService extends Service {
                 mRemoteViews.setViewVisibility(R.id.nPause, View.VISIBLE);
                 mRemoteViews.setViewVisibility(R.id.nExit, View.GONE);
                 break;
-            case ACTION_RESTART:
-                mBuilder.setSmallIcon(R.mipmap.button_start);
-                mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_stop);
-                mRemoteViews.setImageViewResource(R.id.nPause, R.mipmap.button_pause);
-                mRemoteViews.setViewVisibility(R.id.nPause, View.VISIBLE);
-                mRemoteViews.setViewVisibility(R.id.nExit, View.GONE);
+            case ACTION_SHOW_CONFIRM:
+                mRemoteViews.setViewVisibility(R.id.nConfirm, View.VISIBLE);
+                yesNOShown = true;
+                break;
+            case ACTION_HIDE_CONFIRM:
+                mRemoteViews.setViewVisibility(R.id.nConfirm, View.GONE);
+                yesNOShown = false;
                 break;
             case ACTION_EXIT:
                 mBuilder = null;
@@ -143,7 +175,7 @@ public class NotificationService extends Service {
 
     private void showInForeground() {
         ActivityManager am = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningTaskInfo> tasks =am.getRunningTasks(10); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
+        List<ActivityManager.RunningTaskInfo> tasks =am.getRunningTasks(5); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
         if(!tasks.isEmpty()) {
             int tasksSize = tasks.size();
 //            utils.log(logID, "tasksSize "+tasksSize);
@@ -156,22 +188,6 @@ public class NotificationService extends Service {
                 }
             }
         }
-    }
-
-    private void confirmFinish() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
-        builder.setTitle("Confirm Finish ");
-        String s = "Are you sure to finish tracking?";
-        builder.setMessage(s);
-        builder.setNegativeButton("Yes, Finish",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        MainActivity.notificationBarTouched(9);
-                    }
-                });
-        AlertDialog dialog = builder.create();
-        dialog.show();
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
     }
 
     private void createNotification() {
@@ -192,6 +208,17 @@ public class NotificationService extends Service {
 
 //        Intent mainIntent = new Intent(mContext, MainActivity.class);
 //        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
+        Intent yesIntent = new Intent(this, NotificationService.class);
+        yesIntent.putExtra("operation", NOTIFICATION_BAR_YES_STOP);
+        PendingIntent yesPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_YES_STOP, yesIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(yesPI);
+        mRemoteViews.setOnClickPendingIntent(R.id.nYes, yesPI);
+
+        Intent noIntent = new Intent(this, NotificationService.class);
+        noIntent.putExtra("operation", NOTIFICATION_BAR_NO_CONTINUE);
+        PendingIntent noPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_NO_CONTINUE, noIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(noPI);
+        mRemoteViews.setOnClickPendingIntent(R.id.nNo, noPI);
 
         Intent barIntent = new Intent(this, NotificationService.class);
         barIntent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
@@ -216,6 +243,7 @@ public class NotificationService extends Service {
         PendingIntent exitPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_EXIT_APP, exitIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(exitPI);
         mRemoteViews.setOnClickPendingIntent(R.id.nExit, exitPI);
+
     }
 
     @Override

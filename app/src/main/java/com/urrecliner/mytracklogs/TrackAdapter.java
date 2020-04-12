@@ -3,6 +3,9 @@ package com.urrecliner.mytracklogs;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -103,7 +106,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         DecimalFormat decimalFormat = new DecimalFormat("##,###,###");
         s = decimalFormat.format(TrackLog.getMeters())+"m\n"+utils.minute2Text(TrackLog.getMinutes());
         viewHolder.tvMeterMinutes.setText(s);
-        int grayed = 180 * position / (trackLogs.size()+1);
+        int grayed = 240 * position / (trackLogs.size()+1);
         int backColor = ContextCompat.getColor(trackActivity,R.color.logBackground) - grayed - grayed * 256 - grayed * 256 * 256;
         viewHolder.viewLine.setBackgroundColor(backColor);
         backColor ^= 0xAAAAAA;

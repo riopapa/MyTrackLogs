@@ -35,16 +35,20 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static com.urrecliner.mytracklogs.Vars.ACTION_EXIT;
+import static com.urrecliner.mytracklogs.Vars.ACTION_HIDE_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.ACTION_INIT;
 import static com.urrecliner.mytracklogs.Vars.ACTION_PAUSE;
 import static com.urrecliner.mytracklogs.Vars.ACTION_RESTART;
+import static com.urrecliner.mytracklogs.Vars.ACTION_SHOW_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.ACTION_START;
 import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
 import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_EXIT_APP;
-import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_FINISH;
-import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_GO_STOP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_CONFIRMED_STOP;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_GO;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_HIDE_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_PAUSE_RESTART;
+import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_SHOW_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
 import static com.urrecliner.mytracklogs.Vars.gpsTracker;
@@ -172,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mainMap);
         mapFragment.getMapAsync(this);
-
+        updateNotification(ACTION_INIT);
     }
 
     void goStop_Clicked() {
@@ -180,14 +184,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             confirmFinish();
         }
         else {  // START
-            modeStarted = true;
-            modePaused = false;
-            prevLogTime = System.currentTimeMillis();
-            beginTrackLog();
-            fabGoStop.setImageResource(R.mipmap.button_stop);
-            fabPauseRestart.setAlpha(1f);
-            updateNotification(ACTION_START);
+            go_Clicked();
         }
+    }
+
+    void go_Clicked() {
+        modeStarted = true;
+        modePaused = false;
+        prevLogTime = System.currentTimeMillis();
+        beginTrackLog();
+        fabGoStop.setImageResource(R.mipmap.button_stop);
+        fabPauseRestart.setAlpha(1f);
+        updateNotification(ACTION_START);
     }
 
     void pauseRestart_Clicked() {
@@ -348,6 +356,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         calcMapScale();
         mapScale = 18;
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
+        updateNotification(ACTION_HIDE_CONFIRM);
 //        startGPSTasks();
     }
 
@@ -365,17 +374,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void notificationClicked(int operation) {
         utils.log(logID, "notificationClicked "+operation);
         switch (operation) {
-            case NOTIFICATION_BAR_GO_STOP: // GO_STOP
-                goStop_Clicked();
+            case NOTIFICATION_BAR_GO: // GO_STOP
+                go_Clicked();
                 break;
             case NOTIFICATION_BAR_PAUSE_RESTART: // PAUSE_RESTART
                 pauseRestart_Clicked();
+                break;
+            case NOTIFICATION_BAR_SHOW_CONFIRM:
+                updateNotification(ACTION_SHOW_CONFIRM);
+                break;
+            case NOTIFICATION_BAR_HIDE_CONFIRM:
+                updateNotification(ACTION_HIDE_CONFIRM);
                 break;
             case NOTIFICATION_BAR_EXIT_APP: // EXIT
                 if (!modeStarted)
                     exit_Application();
                 break;
-            case NOTIFICATION_BAR_FINISH: // FINISH CONFIRMED
+            case NOTIFICATION_BAR_CONFIRMED_STOP:
+                updateNotification(ACTION_INIT);
                 finish_tracking();
                 break;
             default:
@@ -508,7 +524,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.setNegativeButton("Yes, Finish",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        notifyAction.sendEmptyMessage(NOTIFICATION_BAR_FINISH);
+                        updateNotification(ACTION_HIDE_CONFIRM);
+                        notifyAction.sendEmptyMessage(NOTIFICATION_BAR_CONFIRMED_STOP);
                     }
                 });
         AlertDialog dialog = builder.create();
