@@ -13,9 +13,6 @@ import android.os.IBinder;
 
 import androidx.core.app.ActivityCompat;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 import static com.urrecliner.mytracklogs.Vars.gpsUpdateTime;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
@@ -26,7 +23,7 @@ class GPSTracker extends Service implements LocationListener {
     boolean isNetworkEnabled = false;
     Location location = null; // Location
     double gpsLatitude, gpsLongitude;
-
+    final String logID = "GPS";
     private static final float MIN_DISTANCE_WALK = 5; // meters
     private static final long MIN_TIME_WALK_UPDATES = 1000; // miliSecs
     protected LocationManager locationManager;
@@ -85,7 +82,7 @@ class GPSTracker extends Service implements LocationListener {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            utils.logE(logID, "Start Error", e);
         }
     }
 

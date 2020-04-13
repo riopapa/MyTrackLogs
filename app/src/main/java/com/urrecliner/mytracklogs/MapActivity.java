@@ -63,7 +63,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Activity mapActivity;
     private long startTime, finishTime;
     private int iMinutes, iMeters, position;
-    ArrayList<LatLng> listLatLng;
+    ArrayList<LatLng> lineFromToLatLng;
     ArrayList<LocLog> locLogs;
     static class LocLog {
         private long logTime;
@@ -121,15 +121,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         polyOptions.color(mapActivity.getColor(R.color.trackRoute));
         polyOptions.endCap(endCap);
 
-//        ff0000, 0000ff
-        listLatLng = new ArrayList<>(); listLatLng.add(new LatLng(0,0)); listLatLng.add(new LatLng(0,0));
+        lineFromToLatLng = new ArrayList<>(); lineFromToLatLng.add(new LatLng(0,0)); lineFromToLatLng.add(new LatLng(0,0));
 
         for (int i = 0; i < locLogs.size()-2; i++) {
-            listLatLng.set(0, new LatLng(locLogs.get(i).getLatitude(), locLogs.get(i).getLongitude()));
-            listLatLng.set(1, new LatLng(locLogs.get(i+1).getLatitude(), locLogs.get(i+1).getLongitude()));
+            lineFromToLatLng.set(0, new LatLng(locLogs.get(i).getLatitude(), locLogs.get(i).getLongitude()));
+            lineFromToLatLng.set(1, new LatLng(locLogs.get(i+1).getLatitude(), locLogs.get(i+1).getLongitude()));
 //            utils.log(logID, locLogs.get(i).getLatitude()+" x "+ locLogs.get(i).getLongitude());
-            showMarker.drawLine(listLatLng);
-            polyOptions.addAll(listLatLng);
+            showMarker.drawLine(lineFromToLatLng);
+            polyOptions.addAll(lineFromToLatLng);
             googleMap.addPolyline(polyOptions);
         }
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2), mapScale));

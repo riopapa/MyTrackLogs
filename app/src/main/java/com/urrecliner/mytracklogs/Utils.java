@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,12 +50,19 @@ class Utils {
         return s.substring(s.lastIndexOf(".")+1);
     }
 
-    void logE(String tag, String text) {
+    void logE(String tag, String text, Exception e) {
         StackTraceElement[] traces;
         traces = Thread.currentThread().getStackTrace();
-        String log = traceName(traces[5].getMethodName()) + traceName(traces[4].getMethodName()) + traceClassName(traces[3].getClassName())+"> "+traces[3].getMethodName() + "#" + traces[3].getLineNumber() + " {"+ tag + "} " + text;
+        String log = traceName(traces[5].getMethodName()) + traceName(traces[4].getMethodName()) + traceClassName(traces[3].getClassName())
+                +"> "+traces[3].getMethodName() + "#" + traces[3].getLineNumber() + " {"+ tag + "} " + text +"\n"+getStackTrace(e);
         Log.e("<" + tag + ">" , log);
         append2file(sdfDateTimeLog.format(new Date())+" : " +log);
+    }
+
+    String getStackTrace(Exception e) {
+        StringWriter errors = new StringWriter();
+        e.printStackTrace(new PrintWriter(errors));
+        return errors.toString();
     }
 
     private void append2file(String textLine) {
@@ -64,11 +73,8 @@ class Utils {
         String fullName = directory.toString() + "/" + PREFIX + sdfDate.format(new Date())+".txt";
         try {
             File file = new File(fullName);
-            if (!file.exists()) {
-                if (!file.createNewFile()) {
-                    logE("createFile", " Error");
-                }
-            }
+            if (!file.exists())
+                file.createNewFile();
             String outText = textLine+"\n";
             fw = new FileWriter(file.getAbsoluteFile(), true);
             bw = new BufferedWriter(fw);

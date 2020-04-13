@@ -89,9 +89,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Timer forceLongUpdate = new Timer();
     Timer forceShortUpdate = new Timer();
     final double mapDiff = 0.01f;
+    boolean onBackground = false;
 
     ArrayList<LatLng> latLngPos;
-    ArrayList<Double> latitudeQues, longitudeQues;
+    ArrayList<Double> latitudeSaves, longitudeSaves, latitudeQues, longitudeQues;
     final int QUE_COUNT = 4;
 
     @SuppressLint("RestrictedApi")
@@ -209,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 prevLatitude = gpsTracker.getGpsLatitude();
                 prevLongitude = gpsTracker.getGpsLongitude();
                 updateNotification(ACTION_RESTART);
-            } else {       // make paused
+            } else {
                 modePaused = true;
                 stopGPSTasks();
                 minutes += System.currentTimeMillis() - beginTime;
@@ -234,12 +235,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startGPSTasks();
         startTime = System.currentTimeMillis();
         beginTime = startTime;
-        latLngPos = new ArrayList<>(); latitudeQues = new ArrayList<>(); longitudeQues = new ArrayList<>();
+        latLngPos = new ArrayList<>(); latitudeSaves = new ArrayList<>(); longitudeSaves = new ArrayList<>();
+        latitudeQues = new ArrayList<>(); longitudeQues = new ArrayList<>();
         startLatitude = gpsTracker.getGpsLatitude();
         startLongitude = gpsTracker.getGpsLongitude();
-        for (int i = 0; i < QUE_COUNT; i++) { latitudeQues.add(startLatitude); longitudeQues.add(startLongitude); }
+        for (int i = 0; i < QUE_COUNT; i++) { latitudeSaves.add(startLatitude); longitudeSaves.add(startLongitude); }
         latLngPos.add(new LatLng(startLatitude, startLongitude));
         utils.log(logID, "startLog " + startLatitude + " x " + startLongitude);
+        latitudeQues.add(startLatitude); longitudeQues.add(startLongitude);
         finishTime = 0;
         dbCount = 0;
         meters = 0;
@@ -295,23 +298,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         long deltaTime = nowTime - prevLogTime;
         double speed = distance * (60*60) / ((double)deltaTime/1000);   // 269649 car
         if (deltaTime > 1000 && (!isWalk && speed < 600000 && speed > 4000) || (isWalk && speed<45000 && speed>100)) {
-            showMarker.drawHere(nowLatitude, nowLongitude);
+
             totSpeed += speed;
-            latitudeQues.remove(0); longitudeQues.remove(0);
-            latitudeQues.add(nowLatitude); longitudeQues.add(nowLongitude);
+            latitudeSaves.remove(0); longitudeSaves.remove(0);
+            latitudeSaves.add(nowLatitude); longitudeSaves.add(nowLongitude);
             calcMiddlePosition();
-            nowLatitude = latitudeQues.get(1); nowLongitude = longitudeQues.get(1);
+            nowLatitude = latitudeSaves.get(1); nowLongitude = longitudeSaves.get(1);
             if (nowLatitude > locNorth) locNorth = nowLatitude;
             if (nowLatitude < locSouth) locSouth = nowLatitude;
             if (nowLongitude > locEast) locEast = nowLongitude;
             if (nowLongitude < locWest) locWest = nowLongitude;
-            markerLatLng.set(0, new LatLng(prevLatitude, prevLongitude));
-            markerLatLng.set(1, new LatLng(nowLatitude, nowLongitude));
-            showMarker.drawLine(markerLatLng);
-            showMarker.drawHere(nowLatitude, nowLongitude);
+
+            latitudeQues.add(nowLatitude); longitudeQues.add(nowLongitude);
+            if (!onBackground)
+                drawTrackLogs();
             distance = mapUtils.getShortDistance();
             meters += distance; // * 1.1f;
-            if (dbCount % 4 == 0) {
+            if (dbCount % 2 == 0) {
                 databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
                 databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
             }
@@ -330,10 +333,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void calcMiddlePosition() {
-        latitudeQues.set(1, ((latitudeQues.get(0)+ latitudeQues.get(2))/2+ latitudeQues.get(1))/2);
-        latitudeQues.set(2, ((latitudeQues.get(1)+ latitudeQues.get(3))/2+ latitudeQues.get(2))/2);
-        longitudeQues.set(1, ((longitudeQues.get(0)+ longitudeQues.get(2))/2+ longitudeQues.get(1))/2);
-        longitudeQues.set(2, ((longitudeQues.get(1)+ longitudeQues.get(3))/2+ longitudeQues.get(2))/2);
+        latitudeSaves.set(1, ((latitudeSaves.get(0)+ latitudeSaves.get(2))/2+ latitudeSaves.get(1))/2);
+        latitudeSaves.set(2, ((latitudeSaves.get(1)+ latitudeSaves.get(3))/2+ latitudeSaves.get(2))/2);
+        longitudeSaves.set(1, ((longitudeSaves.get(0)+ longitudeSaves.get(2))/2+ longitudeSaves.get(1))/2);
+        longitudeSaves.set(2, ((longitudeSaves.get(1)+ longitudeSaves.get(3))/2+ longitudeSaves.get(2))/2);
     }
 
     void calcMapScale() {
@@ -429,16 +432,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }, 0);
             }
         };
-        forceShortUpdate = new Timer();
-        forceShortUpdate.schedule(taskShort,100,19000);
+//        forceShortUpdate = new Timer();
+//        forceShortUpdate.schedule(taskShort,100,19000);
     }
 
     void stopGPSTasks() {
         forceLongUpdate.cancel();
-        forceShortUpdate.cancel();
+//        forceShortUpdate.cancel();
         gpsTracker.stopGPSUpdate();
     }
 
+    void drawTrackLogs() {
+        utils.log(logID, "draw size="+latitudeQues.size());
+        while (latitudeQues.size() > 2) {
+//            Handler handler = new Handler();
+//            handler.postDelayed(new Runnable() {
+//                public void run() {
+                    utils.log(logID+latitudeQues.size(), "Drawing "+latitudeQues.get(0)+" x "+longitudeQues.get(0));
+                    markerLatLng.set(0, new LatLng(latitudeQues.get(0), longitudeQues.get(0)));
+                    markerLatLng.set(1, new LatLng(latitudeQues.get(1), longitudeQues.get(1)));
+                    showMarker.drawLine(markerLatLng);
+                    showMarker.drawHere(latitudeQues.get(1), longitudeQues.get(1));
+                    latitudeQues.remove(0); longitudeQues.remove(0);
+//                }
+//            }, 50);
+        }
+    }
     @Override
     public void onBackPressed() {
         if (!modeStarted)
@@ -468,6 +487,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             serviceIntent = null;
         }
     }
+
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        utils.log(logID, "on resume");
+//        onBackground = false;
+//        if (latitudeQues != null) {
+//            drawTrackLogs();
+//        }
+//    }
+//
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        utils.log(logID, "goto back");
+//        onBackground = true;
+//    }
 
     Menu mainMenu;
     @Override

@@ -63,7 +63,7 @@ class DatabaseIO extends SQLiteOpenHelper {
         try {
             dbIO.update(TABLE_TRACK, cv, "startTime = ?", new String[]{String.valueOf(startTime)});
         } catch (Exception e) {
-            utils.log("trackUpdate", "error "+e.toString());
+            utils.logE(logID, "trackUpdate", e);
         }
     }
 
@@ -90,7 +90,7 @@ class DatabaseIO extends SQLiteOpenHelper {
         try {
             dbIO.insert(TABLE_LOG, null, cv);
         } catch (Exception e) {
-            utils.log("logInsert", "error "+e.toString());
+            utils.logE(logID, "logInsert error ", e);
         }
     }
 
@@ -104,7 +104,7 @@ class DatabaseIO extends SQLiteOpenHelper {
         try {
             result = dbIO.rawQuery(sqlCommand, null);
         } catch (Exception e) {
-            utils.log(logID, " retrievePhoto exception "+e.toString());
+            utils.logE(logID, " retrievePhoto exception ", e);
         }
         return result;
     }

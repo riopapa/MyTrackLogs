@@ -31,7 +31,7 @@
             android:gravity="center"
             android:textColor="@color/information"
             android:layout_height="match_parent"
-            android:text="시작시각"
+            android:text="시작"
             android:textSize="16sp" />
         <TextView
             android:id="@+id/startDate"
@@ -73,7 +73,7 @@
             android:gravity="center"
             android:layout_height="wrap_content"
             android:textColor="@color/information"
-            android:text="이동상황"
+            android:text="이동"
             android:textSize="16sp" />
 
         <TextView

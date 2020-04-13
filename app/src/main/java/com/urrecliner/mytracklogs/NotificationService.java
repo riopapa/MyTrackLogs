@@ -73,7 +73,7 @@ public class NotificationService extends Service {
         try {
             operation = intent.getIntExtra("operation", NOTIFICATION_BAR_NO_ACTION);
         } catch (Exception e) {
-            utils.log(logID, "operation EXCEPTION");
+            utils.logE(logID, "operation EXCEPTION", e);
             return START_STICKY;
         }
         utils.log(logID, "operation : " + operation);
@@ -107,7 +107,7 @@ public class NotificationService extends Service {
 
         String action = intent.getStringExtra("action");
         if (action == null) {
-            utils.log(logID, "action is NULL, nothing to do");
+//            utils.log(logID, "action is NULL, nothing to do");
             return START_NOT_STICKY;
         }
         else
@@ -208,41 +208,37 @@ public class NotificationService extends Service {
 
 //        Intent mainIntent = new Intent(mContext, MainActivity.class);
 //        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
-        Intent yesIntent = new Intent(this, NotificationService.class);
-        yesIntent.putExtra("operation", NOTIFICATION_BAR_YES_STOP);
-        PendingIntent yesPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_YES_STOP, yesIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(yesPI);
-        mRemoteViews.setOnClickPendingIntent(R.id.nYes, yesPI);
+        Intent intent = new Intent(this, NotificationService.class);
 
-        Intent noIntent = new Intent(this, NotificationService.class);
-        noIntent.putExtra("operation", NOTIFICATION_BAR_NO_CONTINUE);
-        PendingIntent noPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_NO_CONTINUE, noIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(noPI);
-        mRemoteViews.setOnClickPendingIntent(R.id.nNo, noPI);
+        intent.putExtra("operation", NOTIFICATION_BAR_YES_STOP);
+        PendingIntent pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_YES_STOP, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pi);
+        mRemoteViews.setOnClickPendingIntent(R.id.nYes, pi);
 
-        Intent barIntent = new Intent(this, NotificationService.class);
-        barIntent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
-        PendingIntent barPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_SHOW_MAIN, barIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(barPI);
-        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, barPI);
+        intent.putExtra("operation", NOTIFICATION_BAR_NO_CONTINUE);
+        pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_NO_CONTINUE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pi);
+        mRemoteViews.setOnClickPendingIntent(R.id.nNo, pi);
 
-        Intent goStopIntent = new Intent(this, NotificationService.class);
-        goStopIntent.putExtra("operation", NOTIFICATION_BAR_GO_STOP);
-        PendingIntent goStopPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_GO_STOP, goStopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(goStopPI);
-        mRemoteViews.setOnClickPendingIntent(R.id.nGoStop, goStopPI);
+        intent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
+        pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_SHOW_MAIN, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pi);
+        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, pi);
 
-        Intent pauseIntent = new Intent(this, NotificationService.class);
-        pauseIntent.putExtra("operation", NOTIFICATION_BAR_PAUSE_RESTART);
-        PendingIntent pausePI = PendingIntent.getService(mContext, NOTIFICATION_BAR_PAUSE_RESTART, pauseIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(pausePI);
-        mRemoteViews.setOnClickPendingIntent(R.id.nPause, pausePI);
+        intent.putExtra("operation", NOTIFICATION_BAR_GO_STOP);
+        pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_GO_STOP, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pi);
+        mRemoteViews.setOnClickPendingIntent(R.id.nGoStop, pi);
 
-        Intent exitIntent = new Intent(this, NotificationService.class);
-        exitIntent.putExtra("operation", NOTIFICATION_BAR_EXIT_APP);
-        PendingIntent exitPI = PendingIntent.getService(mContext, NOTIFICATION_BAR_EXIT_APP, exitIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(exitPI);
-        mRemoteViews.setOnClickPendingIntent(R.id.nExit, exitPI);
+        intent.putExtra("operation", NOTIFICATION_BAR_PAUSE_RESTART);
+        pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_PAUSE_RESTART, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pi);
+        mRemoteViews.setOnClickPendingIntent(R.id.nPause, pi);
+
+        intent.putExtra("operation", NOTIFICATION_BAR_EXIT_APP);
+        pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_EXIT_APP, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pi);
+        mRemoteViews.setOnClickPendingIntent(R.id.nExit, pi);
 
     }
 
