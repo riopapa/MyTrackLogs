@@ -4,7 +4,12 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.widget.Toast;
+
+import java.io.ByteArrayOutputStream;
 
 import static com.urrecliner.mytracklogs.Vars.mContext;
 import static com.urrecliner.mytracklogs.Vars.utils;
@@ -25,7 +30,8 @@ class DatabaseIO extends SQLiteOpenHelper {
             "(startTime INTEGER PRIMARY KEY AUTOINCREMENT, " +    // 0
             " finishTime INTEGER, " + // 1
             " meters INTEGER, " + // 2
-            " minutes INTEGER ) ;"; // 3
+            " minutes INTEGER, " + // 3
+            " bitMpa LONGTEXT) ;"; // 4
 
     DatabaseIO() {
         super(mContext, utils.getPackageDirectory().toString()+ "/" + DATABASE_NAME, null, SCHEMA_VERSION);
@@ -64,6 +70,37 @@ class DatabaseIO extends SQLiteOpenHelper {
             dbIO.update(TABLE_TRACK, cv, "startTime = ?", new String[]{String.valueOf(startTime)});
         } catch (Exception e) {
             utils.logE(logID, "trackUpdate", e);
+        }
+    }
+
+    void trackMapUpdate(long startTime, Bitmap bitmap ) {
+        if (dbIO == null)
+            dbIO = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("startTime", startTime);
+        cv.put("bitMap", BitMapToString(bitmap));
+        try {
+            dbIO.update(TABLE_TRACK, cv, "startTime = ?", new String[]{String.valueOf(startTime)});
+        } catch (Exception e) {
+            utils.logE(logID, "trackUpdate", e);
+        }
+    }
+
+    private String BitMapToString(Bitmap bitmap){
+        ByteArrayOutputStream baos= new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG,100, baos);
+        byte [] b=baos.toByteArray();
+        return Base64.encodeToString(b, Base64.DEFAULT);
+    }
+
+    private Bitmap StringToBitMap(String encodedString){
+        try {
+            byte [] encodeByte=Base64.decode(encodedString,Base64.DEFAULT);
+            Bitmap bitmap= BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.length);
+            return bitmap;
+        } catch(Exception e) {
+            utils.log(logID, " StringToBitMap Error "+e.toString());
+            return null;
         }
     }
 

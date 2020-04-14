@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -118,7 +119,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         llTimeInfo = findViewById(R.id.timeInfo); llTrackInfo = findViewById(R.id.trackInfo);
         llTimeInfo.setVisibility(View.INVISIBLE); llTrackInfo.setVisibility(View.INVISIBLE);
 
-        gpsTracker = new GPSTracker(mContext);
+        gpsTracker = new GPSTracker();
+//        Intent intent = new Intent(mContext, GPSTracker.class);
+//        mContext.startForegroundService(intent);
 //        logInterval = sharePrefer.getInt("logInterval", 10) * 1000;
 //        startGPSTasks();
         gpsTracker.startGPSUpdate();
@@ -418,7 +421,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         };
         forceLongUpdate = new Timer();
-        forceLongUpdate.schedule(taskLong,5,120000);
+        forceLongUpdate.schedule(taskLong,5,30000);
         TimerTask taskShort = new TimerTask() {
             @Override
             public void run() {
@@ -432,8 +435,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }, 0);
             }
         };
-//        forceShortUpdate = new Timer();
-//        forceShortUpdate.schedule(taskShort,100,19000);
+        forceShortUpdate = new Timer();
+        forceShortUpdate.schedule(taskShort,100,10000);
     }
 
     void stopGPSTasks() {
@@ -578,6 +581,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void askPermission() {
         permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
         permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         permissions.add(Manifest.permission.ACCESS_NOTIFICATION_POLICY);
         permissions.add(Manifest.permission.RECEIVE_BOOT_COMPLETED);
