@@ -32,44 +32,11 @@ class GPSTracker extends Service implements LocationListener {
     Location location = null; // Location
     double gpsLatitude, gpsLongitude;
     final String logID = "GPS";
-    private static final float MIN_DISTANCE_WALK = 5; // meters
-    private static final long MIN_TIME_WALK_UPDATES = 1000; // miliSecs
+    private static final float MIN_DISTANCE_WALK = 10; // meters
+    private static final long MIN_TIME_WALK_UPDATES = 50000; // miliSecs
     protected LocationManager locationManager;
-//
-//    @Override
-//    public void onCreate() {
-//        super.onCreate();
-//        utils.log(logID, "gpstracker created");
-//        startForegroundService();
-//    }
-//
-//    void startForegroundService() {
-//        Intent notificationIntent = new Intent(this, MainActivity.class);
-//        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-//
-//        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification_bar);
-//
-//        NotificationCompat.Builder builder;
-//            String CHANNEL_ID = "snwodeer_service_channel";
-//            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-//                    "SnowDeer Service Channel",
-//                    NotificationManager.IMPORTANCE_DEFAULT);
-//
-//            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE))
-//                    .createNotificationChannel(channel);
-//
-//            builder = new NotificationCompat.Builder(this, CHANNEL_ID);
-//        builder.setSmallIcon(R.mipmap.footprint)
-//                .setContent(remoteViews)
-//                .setContentIntent(pendingIntent);
-//
-//        startForeground(1, builder.build());
-//        utils.log(logID, "gpsupdate call");
-//        startGPSUpdate();
-//    }
 
     void startGPSUpdate() {
-        utils.log(logID, "gpsupdate called");
 
         try {
             locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);

@@ -317,7 +317,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 drawTrackLogs();
             distance = mapUtils.getShortDistance();
             meters += distance; // * 1.1f;
-            if (dbCount % 2 == 0) {
+            if (dbCount % 3 == 0) {
                 databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
                 databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
             }

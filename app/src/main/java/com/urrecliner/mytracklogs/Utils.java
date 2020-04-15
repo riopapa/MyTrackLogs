@@ -38,12 +38,14 @@ class Utils {
         append2file(sdfDateTimeLog.format(new Date())+" " +log);
     }
 
+    private String [] ignoreTraces = { "dispatchTransaction", "zza", "performResume", "performCreate", "callActivityOnResume",
+            "access$1200", "access$000", "handleReceiver", "_handleMessage", "dispatchMessage", "loop"};
     private String traceName (String s) {
-        if (s.equals("dispatchTransaction") || s.equals("zza") || s.equals("performResume") || s.equals("performCreate") || s.equals("callActivityOnResume") || s.equals("access$1200")
-                || s.equals("access$000") || s.equals("handleReceiver") || s.equals("handleMessage") || s.equals("dispatchMessage"))
-            return "";
-        else
-            return s + "> ";
+        for (String i : ignoreTraces) {
+            if (s.equals(i))
+                return "";
+        }
+        return s + "> ";
     }
 
     private String traceClassName(String s) {
