@@ -68,7 +68,7 @@ public class NotificationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        utils.log(logID," start command");
+//        utils.log(logID," start command");
         int operation;
         try {
             operation = intent.getIntExtra("operation", NOTIFICATION_BAR_NO_ACTION);
@@ -76,7 +76,7 @@ public class NotificationService extends Service {
             utils.logE(logID, "operation EXCEPTION", e);
             return START_STICKY;
         }
-        utils.log(logID, "operation : " + operation);
+//        utils.log(logID, "operation : " + operation);
         switch (operation) {
             case NOTIFICATION_BAR_NO_ACTION:
                 break;
@@ -110,8 +110,8 @@ public class NotificationService extends Service {
 //            utils.log(logID, "action is NULL, nothing to do");
             return START_NOT_STICKY;
         }
-        else
-            utils.log(logID, "action "+action);
+//        else
+//            utils.log(logID, "action "+action);
 
         createNotification();
         switch (action) {
@@ -206,8 +206,6 @@ public class NotificationService extends Service {
                     .setOngoing(false);
         }
 
-//        Intent mainIntent = new Intent(mContext, MainActivity.class);
-//        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
         Intent intent = new Intent(this, NotificationService.class);
 
         intent.putExtra("operation", NOTIFICATION_BAR_YES_STOP);

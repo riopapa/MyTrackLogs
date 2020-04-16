@@ -6,6 +6,7 @@ import static com.urrecliner.mytracklogs.Vars.nowLatitude;
 import static com.urrecliner.mytracklogs.Vars.nowLongitude;
 import static com.urrecliner.mytracklogs.Vars.prevLatitude;
 import static com.urrecliner.mytracklogs.Vars.prevLongitude;
+import static com.urrecliner.mytracklogs.Vars.utils;
 
 class MapUtils {
 
@@ -15,6 +16,8 @@ class MapUtils {
     static double locSouth, locNorth, locWest, locEast;
 
     double getFullMapDistance() {
+        utils.log("left top", locWest+", "+locNorth);
+        utils.log("right btm", locEast+", "+locSouth);
         locationPrev.setLatitude(locWest);
         locationPrev.setLongitude(locNorth);
         locationNow.setLatitude(locEast);

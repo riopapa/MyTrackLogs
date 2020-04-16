@@ -39,7 +39,8 @@ class Utils {
     }
 
     private String [] ignoreTraces = { "dispatchTransaction", "zza", "performResume", "performCreate", "callActivityOnResume",
-            "access$1200", "access$000", "handleReceiver", "_handleMessage", "dispatchMessage", "loop"};
+            "access$1200", "access$1900", "access$000", "handleReceiver", "_handleMessage", "handleMessage", "dispatchMessage",
+            "handleServiceArgs", "loop"};
     private String traceName (String s) {
         for (String i : ignoreTraces) {
             if (s.equals(i))

@@ -32,8 +32,8 @@ class GPSTracker extends Service implements LocationListener {
     Location location = null; // Location
     double gpsLatitude, gpsLongitude;
     final String logID = "GPS";
-    private static final float MIN_DISTANCE_WALK = 10; // meters
-    private static final long MIN_TIME_WALK_UPDATES = 50000; // miliSecs
+    private static final float MIN_DISTANCE_WALK = 5; // meters
+    private static final long MIN_TIME_WALK_UPDATES = 10000; // miliSecs
     protected LocationManager locationManager;
 
     void startGPSUpdate() {

@@ -7,10 +7,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -87,8 +85,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
     double totSpeed = 0;
-    Timer forceLongUpdate = new Timer();
-    Timer forceShortUpdate = new Timer();
+//    Timer forceLongUpdate = new Timer();
+//    Timer forceShortUpdate = new Timer();
     final double mapDiff = 0.01f;
     boolean onBackground = false;
 
@@ -120,10 +118,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         llTimeInfo.setVisibility(View.INVISIBLE); llTrackInfo.setVisibility(View.INVISIBLE);
 
         gpsTracker = new GPSTracker();
-//        Intent intent = new Intent(mContext, GPSTracker.class);
-//        mContext.startForegroundService(intent);
-//        logInterval = sharePrefer.getInt("logInterval", 10) * 1000;
-//        startGPSTasks();
         gpsTracker.startGPSUpdate();
         nowLatitude = gpsTracker.getGpsLatitude();
         nowLongitude = gpsTracker.getGpsLongitude();
@@ -195,7 +189,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void go_Clicked() {
         modeStarted = true;
         modePaused = false;
-        prevLogTime = System.currentTimeMillis();
         beginTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_stop);
         fabPauseRestart.setAlpha(1f);
@@ -226,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void finish_tracking() {
         modeStarted = false;
         modePaused = false;
+        utils.log(logID,"Finish Summary average speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
         endTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_start);
         fabPauseRestart.setAlpha(0.2f);
@@ -238,6 +232,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startGPSTasks();
         startTime = System.currentTimeMillis();
         beginTime = startTime;
+        prevLogTime = startTime;
         latLngPos = new ArrayList<>(); latitudeSaves = new ArrayList<>(); longitudeSaves = new ArrayList<>();
         latitudeQues = new ArrayList<>(); longitudeQues = new ArrayList<>();
         startLatitude = gpsTracker.getGpsLatitude();
@@ -277,6 +272,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         responseGPSLocation(); responseGPSLocation(); responseGPSLocation();
         stopGPSTasks();
         calcMapScale();
+        utils.log(logID,"Final map scale is "+mapScale);
         mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS), mapScale));
         elapsedTime = minutes + finishTime - beginTime;
 //            minutes += System.currentTimeMillis() - beginTime;
@@ -294,48 +290,50 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         nowLatitude = latitudeGPS; nowLongitude = longitudeGPS;
         long nowTime = System.currentTimeMillis();
+        long deltaTime = nowTime - prevLogTime;
+        if (deltaTime < 200)
+            return;
+        double distance = mapUtils.getShortDistance();
+        double speed = distance / (double)deltaTime * 1000 * 60 * 60 ;
+        utils.log("Source", "distance "+distance+" speed " + speed+" time "+deltaTime);
+        if (isWalk && (speed>500000 || speed < 100)) {
+            utils.log("Walk", "BAD " + " XSpeed " + speed+" XTime "+deltaTime);
+            return;
+        }
         elapsedTime = minutes + nowTime - beginTime;
         String s = utils.minute2Text((int) elapsedTime / 60000);
         tvMinutes.setText(s);
-        double distance = mapUtils.getShortDistance();
-        long deltaTime = nowTime - prevLogTime;
-        double speed = distance * (60*60) / ((double)deltaTime/1000);   // 269649 car
-        if (deltaTime > 1000 && (!isWalk && speed < 600000 && speed > 4000) || (isWalk && speed<45000 && speed>100)) {
+        totSpeed += speed;
+        latitudeSaves.remove(0); longitudeSaves.remove(0);
+        latitudeSaves.add(nowLatitude); longitudeSaves.add(nowLongitude);
+        adjustPosition();
+        nowLatitude = latitudeSaves.get(0); nowLongitude = longitudeSaves.get(0);
+        if (nowLatitude > locNorth) locNorth = nowLatitude;
+        if (nowLatitude < locSouth) locSouth = nowLatitude;
+        if (nowLongitude > locEast) locEast = nowLongitude;
+        if (nowLongitude < locWest) locWest = nowLongitude;
 
-            totSpeed += speed;
-            latitudeSaves.remove(0); longitudeSaves.remove(0);
-            latitudeSaves.add(nowLatitude); longitudeSaves.add(nowLongitude);
-            calcMiddlePosition();
-            nowLatitude = latitudeSaves.get(1); nowLongitude = longitudeSaves.get(1);
-            if (nowLatitude > locNorth) locNorth = nowLatitude;
-            if (nowLatitude < locSouth) locSouth = nowLatitude;
-            if (nowLongitude > locEast) locEast = nowLongitude;
-            if (nowLongitude < locWest) locWest = nowLongitude;
-
-            latitudeQues.add(nowLatitude); longitudeQues.add(nowLongitude);
-            if (!onBackground)
-                drawTrackLogs();
-            distance = mapUtils.getShortDistance();
-            meters += distance; // * 1.1f;
-            if (dbCount % 3 == 0) {
-                databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
-                databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
-            }
-            s = decimalComma.format(meters) + "m /" + dbCount;
-            tvMeter.setText(s);
-            updateNotification(ACTION_UPDATE);
-            prevLatitude = nowLatitude;
-            prevLongitude = nowLongitude;
-            prevLogTime = nowTime;
-            dbCount++;
-            utils.log("GOOD", "dist " + distance + " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
+        latitudeQues.add(nowLatitude); longitudeQues.add(nowLongitude);
+//        if (!onBackground)
+            drawTrackLogs();
+        distance = mapUtils.getShortDistance();
+        meters += distance; // * 1.1f;
+        if (dbCount % 3 == 0) {
+            databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
+            databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
         }
-        else
-            utils.log("X", "BAD " + distance + " XSpeed " + speed+" XTime "+(nowTime-prevLogTime));
-
+        s = decimalComma.format(meters) + "m /" + dbCount;
+        tvMeter.setText(s);
+        updateNotification(ACTION_UPDATE);
+        prevLatitude = nowLatitude;
+        prevLongitude = nowLongitude;
+        prevLogTime = nowTime;
+        dbCount++;
+//            utils.log("GOOD", "dist " + distance + " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
+        utils.log("GOOD", " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
     }
 
-    void calcMiddlePosition() {
+    void adjustPosition() {
         latitudeSaves.set(1, ((latitudeSaves.get(0)+ latitudeSaves.get(2))/2+ latitudeSaves.get(1))/2);
         latitudeSaves.set(2, ((latitudeSaves.get(1)+ latitudeSaves.get(3))/2+ latitudeSaves.get(2))/2);
         longitudeSaves.set(1, ((longitudeSaves.get(0)+ longitudeSaves.get(2))/2+ longitudeSaves.get(1))/2);
@@ -344,6 +342,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void calcMapScale() {
         double fullMapDistance = mapUtils.getFullMapDistance();
+        utils.log(logID," initial distance :"+fullMapDistance);
         mapScale = mapUtils.getMapScale(fullMapDistance);
         utils.log(logID, "mapScale >> "+mapScale);
     }
@@ -359,6 +358,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude+" with scale:"+mapScale);
         locSouth = startLatitude-mapDiff; locNorth = startLatitude+mapDiff;
         locWest = startLongitude-mapDiff; locEast = startLongitude+mapDiff;
+        utils.log(logID," initial distance :"+mapUtils.getFullMapDistance());
         calcMapScale();
         mapScale = 18;
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
@@ -401,52 +401,53 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 finish_tracking();
                 break;
             default:
-                utils.log(logID, "* * * * * Touch Code error "+operation);
+                utils.log(logID, "/// Touch Code error "+operation);
         }
     }
 
     void startGPSTasks() {
 
-        TimerTask taskLong = new TimerTask() {
-            @Override
-            public void run() {
-                Handler mHandler = new Handler(Looper.getMainLooper());
-                mHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        utils.log(logID, "LONG force ///");
-                        gpsTracker.startGPSUpdate();
-                    }
-                }, 0);
-            }
-        };
-        forceLongUpdate = new Timer();
-        forceLongUpdate.schedule(taskLong,5,30000);
-        TimerTask taskShort = new TimerTask() {
-            @Override
-            public void run() {
-                Handler mHandler = new Handler(Looper.getMainLooper());
-                mHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        utils.log(logID, "/// SHORT force");
-                        gpsTracker.inform2Main();
-                    }
-                }, 0);
-            }
-        };
-        forceShortUpdate = new Timer();
-        forceShortUpdate.schedule(taskShort,100,10000);
+        gpsTracker.startGPSUpdate();
+//        TimerTask taskLong = new TimerTask() {
+//            @Override
+//            public void run() {
+//                Handler mHandler = new Handler(Looper.getMainLooper());
+//                mHandler.postDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        utils.log(logID, "LONG force ///");
+//                        gpsTracker.startGPSUpdate();
+//                    }
+//                }, 0);
+//            }
+//        };
+//        forceLongUpdate = new Timer();
+//        forceLongUpdate.schedule(taskLong,5,30000);
+//        TimerTask taskShort = new TimerTask() {
+//            @Override
+//            public void run() {
+//                Handler mHandler = new Handler(Looper.getMainLooper());
+//                mHandler.postDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        utils.log(logID, "/// SHORT force");
+//                        gpsTracker.inform2Main();
+//                    }
+//                }, 0);
+//            }
+//        };
+//        forceShortUpdate = new Timer();
+//        forceShortUpdate.schedule(taskShort,100,10000);
     }
 
     void stopGPSTasks() {
-        forceLongUpdate.cancel();
+//        forceLongUpdate.cancel();
 //        forceShortUpdate.cancel();
         gpsTracker.stopGPSUpdate();
     }
 
     void drawTrackLogs() {
-        utils.log(logID, "draw size="+latitudeQues.size());
+//        utils.log(logID, "draw size="+latitudeQues.size());
         while (latitudeQues.size() > 2) {
 //            Handler handler = new Handler();
 //            handler.postDelayed(new Runnable() {
@@ -470,7 +471,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void exit_Application() {
-        utils.log(logID,"Exit App. Summary average speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
 
         updateNotification(ACTION_EXIT);
         finish();
@@ -536,7 +536,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void updateNotification(String action) {
-        utils.log(logID, " /// "+action+" ///");
+//        utils.log(logID, " /// "+action+" ///");
         Intent updateIntent = new Intent(MainActivity.this, NotificationService.class);
         updateIntent.putExtra("action", action);
         switch (action) {
@@ -560,11 +560,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.setTitle("Confirm Finish ");
         String s = "Are you sure to finish tracking?";
         builder.setMessage(s);
-        builder.setNegativeButton("Yes, Finish",
+        builder.setNegativeButton("Finish",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         updateNotification(ACTION_HIDE_CONFIRM);
                         notifyAction.sendEmptyMessage(NOTIFICATION_BAR_CONFIRMED_STOP);
+                    }
+                });
+        builder.setPositiveButton("No, Continue ",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
                     }
                 });
         AlertDialog dialog = builder.create();
