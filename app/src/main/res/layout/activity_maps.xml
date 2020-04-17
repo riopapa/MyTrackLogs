@@ -10,9 +10,10 @@
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        tools:layout="@layout/activity_maps"
         tools:context="com.urrecliner.mytracks.MapActivity" />
     <TextView
-        android:id="@+id/timeInfo"
+        android:id="@+id/timeSummary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -30,7 +31,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/logInfo"
+        android:id="@+id/logSummary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -45,5 +46,15 @@
         android:background="@color/logColorBack"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/timeInfo" />
+        app:layout_constraintTop_toBottomOf="@id/timeSummary" />
+
+    <ImageView
+        android:id="@+id/smallMap"
+        android:layout_width="120dp"
+        android:layout_height="180dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="96dp"
+        />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

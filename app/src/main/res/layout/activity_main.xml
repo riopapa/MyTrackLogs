@@ -14,7 +14,7 @@
         tools:context=".MainActivity" />
 
     <LinearLayout
-        android:id="@+id/timeInfo"
+        android:id="@+id/timeSummary"
         android:layout_width="120dp"
         android:layout_height="wrap_content"
         android:background="@drawable/back_round"
@@ -63,7 +63,7 @@
         android:layout_marginTop="16dp"
         android:padding="8dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toRightOf="@id/timeInfo"
+        app:layout_constraintLeft_toRightOf="@id/timeSummary"
         app:layout_constraintRight_toRightOf="parent"
         android:orientation="vertical" >
 

@@ -19,10 +19,9 @@ class ShowMarker {
     private GoogleMap thisMap;
     private Marker markerStart, markerFinish, markerHere;
     private Activity showActivity;
-    private LatLng latLng;
     private CustomCap endCap;
     private PolylineOptions polyOptions;
-    private static final int POLYLINE_STROKE_WIDTH_PX = 6;
+    private static final int POLYLINE_STROKE_WIDTH_PX = 12;
 
     void init(Activity activity, GoogleMap map) {
         showActivity = activity;
@@ -36,7 +35,6 @@ class ShowMarker {
                 BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 10);
         polyOptions = new PolylineOptions();
         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
-//        polyOptions.pattern(PATTERN_POLYLINE_MINE);
         polyOptions.color(showActivity.getColor(R.color.trackRoute));
         polyOptions.endCap(endCap);
     }

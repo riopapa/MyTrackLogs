@@ -7,9 +7,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Base64;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -29,6 +32,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -50,6 +54,7 @@ import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_PAUSE_RESTART;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_SHOW_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
+import static com.urrecliner.mytracklogs.Vars.dummyMap;
 import static com.urrecliner.mytracklogs.Vars.gpsTracker;
 import static com.urrecliner.mytracklogs.Vars.mContext;
 import static com.urrecliner.mytracklogs.Vars.mainActivity;
@@ -114,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvStartTime = findViewById(R.id.startTime);
         tvMeter = findViewById(R.id.meter);
         tvMinutes = findViewById(R.id.nMinutes);
-        llTimeInfo = findViewById(R.id.timeInfo); llTrackInfo = findViewById(R.id.trackInfo);
+        llTimeInfo = findViewById(R.id.timeSummary); llTrackInfo = findViewById(R.id.trackInfo);
         llTimeInfo.setVisibility(View.INVISIBLE); llTrackInfo.setVisibility(View.INVISIBLE);
 
         gpsTracker = new GPSTracker();
@@ -175,6 +180,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.mainMap);
         mapFragment.getMapAsync(this);
         updateNotification(ACTION_INIT);
+        dummyMap = mapUtils.StringToBitMap(mapUtils.BitMapToString(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)));
     }
 
     void goStop_Clicked() {
@@ -294,9 +300,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (deltaTime < 200)
             return;
         double distance = mapUtils.getShortDistance();
-        double speed = distance / (double)deltaTime * 1000 * 60 * 60 ;
+        double speed = distance / (double)deltaTime * 1000f / 60f / 60f;
         utils.log("Source", "distance "+distance+" speed " + speed+" time "+deltaTime);
-        if (isWalk && (speed>500000 || speed < 100)) {
+        if (isWalk && (speed>50f || speed < 0.01f)) {
             utils.log("Walk", "BAD " + " XSpeed " + speed+" XTime "+deltaTime);
             return;
         }
@@ -318,7 +324,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             drawTrackLogs();
         distance = mapUtils.getShortDistance();
         meters += distance; // * 1.1f;
-        if (dbCount % 3 == 0) {
+        if (dbCount % 2 == 0) {
             databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
             databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
         }
@@ -329,8 +335,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         prevLongitude = nowLongitude;
         prevLogTime = nowTime;
         dbCount++;
-//            utils.log("GOOD", "dist " + distance + " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
-        utils.log("GOOD", " speed " + speed+" time "+deltaTime+" av speed "+(totSpeed)/dbCount);
+        utils.log("GOOD", " speed " + speed+" time "+deltaTime+" avspeed "+(totSpeed)/dbCount);
     }
 
     void adjustPosition() {

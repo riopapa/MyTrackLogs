@@ -3,6 +3,7 @@ package com.urrecliner.mytracklogs;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -26,7 +27,7 @@ class Vars {
     static boolean modeStarted = false, modePaused = false;
 
     static double prevLatitude, prevLongitude, nowLatitude, nowLongitude;
-
+    static Bitmap dummyMap;
     static DecimalFormat decimalComma = new DecimalFormat("##,###,###");
     static SimpleDateFormat sdfDateDay = new SimpleDateFormat("MM-dd(EEE)", Locale.getDefault());
     static SimpleDateFormat sdfDateDayTime = new SimpleDateFormat("MM-dd(EEE) HH:mm", Locale.getDefault());

@@ -3,12 +3,11 @@ package com.urrecliner.mytracklogs;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
+import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.DecimalFormat;
 
+import static com.urrecliner.mytracklogs.R.mipmap.my_track_log_small;
+import static com.urrecliner.mytracklogs.Vars.dummyMap;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
@@ -30,6 +31,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
         final String logID = "trackAdapter";
         TextView tvStartFinish, tvMeterMinutes;
+        ImageView ivBitmap;
         View viewLine;
 
         TrackViewHolder(View view) {
@@ -37,18 +39,16 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
             this.viewLine = itemView.findViewById(R.id.one_track);
             this.tvStartFinish = itemView.findViewById(R.id.startFinishTime);
             this.tvMeterMinutes = itemView.findViewById(R.id.metersMinutes);
+            this.ivBitmap = itemView.findViewById(R.id.trackMap);
             this.viewLine.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     int position = getAdapterPosition();
-                    TrackLog TrackLog = trackLogs.get(position);
+                    TrackLog trackLog = trackLogs.get(position);
                     Intent intent = new Intent(trackActivity, MapActivity.class);
-                    intent.putExtra("startTime", TrackLog.getStartTime());
-                    intent.putExtra("finishTime", TrackLog.getFinishTime());
-                    intent.putExtra("minutes", TrackLog.getMinutes());
-                    intent.putExtra("meters", TrackLog.getMeters());
+                    intent.putExtra("trackLog", trackLog);
                     intent.putExtra("position", position);
-                    utils.log(logID, "jump to Map");
+//                    utils.log(logID, "jump to Map");
                     trackActivity.startActivity(intent);
                 }
             });
@@ -99,12 +99,12 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     public void onBindViewHolder(@NonNull TrackViewHolder viewHolder, int position) {
 
         String s;
-        TrackLog TrackLog = trackLogs.get(position);
-        s = utils.long2DateDay(TrackLog.getStartTime())+"\n"+utils.long2Time(TrackLog.getStartTime())+"~"+
-                utils.long2Time(TrackLog.getFinishTime());
+        TrackLog trackLog = trackLogs.get(position);
+        s = utils.long2DateDay(trackLog.getStartTime())+"\n"+utils.long2Time(trackLog.getStartTime())+"~"+
+                utils.long2Time(trackLog.getFinishTime());
         viewHolder.tvStartFinish.setText(s);
         DecimalFormat decimalFormat = new DecimalFormat("##,###,###");
-        s = decimalFormat.format(TrackLog.getMeters())+"m\n"+utils.minute2Text(TrackLog.getMinutes());
+        s = decimalFormat.format(trackLog.getMeters())+"m\n"+utils.minute2Text(trackLog.getMinutes());
         viewHolder.tvMeterMinutes.setText(s);
         int grayed = 240 * position / (trackLogs.size()+1);
         int backColor = ContextCompat.getColor(trackActivity,R.color.logBackground) - grayed - grayed * 256 - grayed * 256 * 256;
@@ -112,6 +112,11 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         backColor ^= 0xAAAAAA;
         viewHolder.tvStartFinish.setTextColor(backColor);
         viewHolder.tvMeterMinutes.setTextColor(backColor);
+        Bitmap bitmap = trackLog.getBitMap();
+        if (bitmap.sameAs(dummyMap))
+            viewHolder.ivBitmap.setImageResource(R.mipmap.my_track_log);
+        else
+            viewHolder.ivBitmap.setImageBitmap(bitmap);
     }
 
     @Override

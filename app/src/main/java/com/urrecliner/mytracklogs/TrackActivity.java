@@ -1,6 +1,7 @@
 package com.urrecliner.mytracklogs;
 
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 
 import androidx.appcompat.app.ActionBar;
@@ -10,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
+import static com.urrecliner.mytracklogs.Vars.mapUtils;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.trackActivity;
@@ -22,7 +24,7 @@ public class TrackActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_logs);
+        setContentView(R.layout.activity_tracks);
 
         RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.track_recycler);
         LinearLayoutManager mLinearLayoutManager = new LinearLayoutManager(this);
@@ -45,7 +47,8 @@ public class TrackActivity extends AppCompatActivity {
                     long finishTime = cursor.getLong(cursor.getColumnIndex("finishTime"));
                     int meters = cursor.getInt(cursor.getColumnIndex("meters"));
                     int minutes = cursor.getInt(cursor.getColumnIndex("minutes"));
-                    trackLogs.add(new TrackLog(startTime, finishTime, meters, minutes));
+                    Bitmap bitmap = mapUtils.StringToBitMap(cursor.getString(cursor.getColumnIndex("bitMap")));
+                    trackLogs.add(new TrackLog(startTime, finishTime, meters, minutes, bitmap));
                 } while (cursor.moveToNext());
             }
         }
