@@ -22,6 +22,7 @@ class TrackLog implements Parcelable {
     int getMeters() { return meters; }
     int getMinutes() { return minutes; }
     Bitmap getBitMap() {return bitMap; }
+    void setBitMap (Bitmap bitMap) {this.bitMap = bitMap;}
 
     @Override
     public int describeContents() {
@@ -37,7 +38,7 @@ class TrackLog implements Parcelable {
         dest.writeParcelable(bitMap, flags);
     }
 
-    public void readFromParcel(Parcel src) {
+    private void readFromParcel(Parcel src) {
         this.startTime = src.readLong();
         this.finishTime = src.readLong();
         this.meters = src.readInt();
@@ -55,7 +56,7 @@ class TrackLog implements Parcelable {
         }
     };
 
-    public TrackLog(Parcel src) {
+    private TrackLog(Parcel src) {
         readFromParcel(src);
     }
 }

@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.DecimalFormat;
 
-import static com.urrecliner.mytracklogs.R.mipmap.my_track_log_small;
 import static com.urrecliner.mytracklogs.Vars.dummyMap;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
@@ -50,7 +49,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
                     intent.putExtra("position", position);
 //                    utils.log(logID, "jump to Map");
                     trackActivity.startActivity(intent);
-                    utils.log(logID, "RETURNED TO HOLDER");
                 }
             });
 

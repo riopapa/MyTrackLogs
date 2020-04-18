@@ -34,10 +34,6 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static com.urrecliner.mytracklogs.MapUtils.locEast;
-import static com.urrecliner.mytracklogs.MapUtils.locNorth;
-import static com.urrecliner.mytracklogs.MapUtils.locSouth;
-import static com.urrecliner.mytracklogs.MapUtils.locWest;
 import static com.urrecliner.mytracklogs.Vars.ACTION_EXIT;
 import static com.urrecliner.mytracklogs.Vars.ACTION_HIDE_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.ACTION_INIT;
@@ -147,7 +143,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 goStop_Clicked();
             }
         });
-
         fabPauseRestart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -203,7 +198,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (modeStarted) {
             if (modePaused) {      // already paused, let restart
                 modePaused = false;
-                startGPSTasks();
+                gpsTracker.startGPSUpdate();
                 beginTime = System.currentTimeMillis();
                 prevLogTime = beginTime;
                 fabPauseRestart.setImageResource(R.mipmap.button_pause);
@@ -212,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updateNotification(ACTION_RESTART);
             } else {
                 modePaused = true;
-                stopGPSTasks();
+                gpsTracker.stopGPSUpdate();
                 minutes += System.currentTimeMillis() - beginTime;
                 fabPauseRestart.setImageResource(R.mipmap.button_restart);
                 updateNotification(ACTION_PAUSE);
@@ -233,7 +228,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void beginTrackLog() {
         mainMap.clear();
-        startGPSTasks();
+        gpsTracker.startGPSUpdate();
         startTime = System.currentTimeMillis();
         beginTime = startTime;
         prevLogTime = startTime;
@@ -273,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         finishTime = System.currentTimeMillis();
         latitudeGPS = gpsTracker.getGpsLatitude(); longitudeGPS = gpsTracker.getGpsLongitude();
         responseGPSLocation(); responseGPSLocation(); responseGPSLocation();
-        stopGPSTasks();
+        gpsTracker.stopGPSUpdate();
         calcMapScale();
         utils.log(logID,"Final map scale is "+mapScale);
         mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS), mapScale));
@@ -314,8 +309,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (nowLongitude < locWest) locWest = nowLongitude;
 
         latitudeQues.add(nowLatitude); longitudeQues.add(nowLongitude);
-//        if (!onBackground)
-            drawTrackLogs();
+        drawTrackLogs();
         distance = mapUtils.getShortDistance();
         meters += distance; // * 1.1f;
         if (dbCount % 2 == 0) {
@@ -362,7 +356,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapScale = 18;
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
         updateNotification(ACTION_HIDE_CONFIRM);
-//        startGPSTasks();
     }
 
     static double latitudeGPS, longitudeGPS;
@@ -404,61 +397,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    void startGPSTasks() {
-
-        gpsTracker.startGPSUpdate();
-//        TimerTask taskLong = new TimerTask() {
-//            @Override
-//            public void run() {
-//                Handler mHandler = new Handler(Looper.getMainLooper());
-//                mHandler.postDelayed(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        utils.log(logID, "LONG force ///");
-//                        gpsTracker.startGPSUpdate();
-//                    }
-//                }, 0);
-//            }
-//        };
-//        forceLongUpdate = new Timer();
-//        forceLongUpdate.schedule(taskLong,5,30000);
-//        TimerTask taskShort = new TimerTask() {
-//            @Override
-//            public void run() {
-//                Handler mHandler = new Handler(Looper.getMainLooper());
-//                mHandler.postDelayed(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        utils.log(logID, "/// SHORT force");
-//                        gpsTracker.inform2Main();
-//                    }
-//                }, 0);
-//            }
-//        };
-//        forceShortUpdate = new Timer();
-//        forceShortUpdate.schedule(taskShort,100,10000);
-    }
-
-    void stopGPSTasks() {
-//        forceLongUpdate.cancel();
-//        forceShortUpdate.cancel();
-        gpsTracker.stopGPSUpdate();
-    }
-
     void drawTrackLogs() {
 //        utils.log(logID, "draw size="+latitudeQues.size());
         while (latitudeQues.size() > 2) {
-//            Handler handler = new Handler();
-//            handler.postDelayed(new Runnable() {
-//                public void run() {
-                    utils.log(logID+latitudeQues.size(), "Drawing "+latitudeQues.get(0)+" x "+longitudeQues.get(0));
-                    markerLatLng.set(0, new LatLng(latitudeQues.get(0), longitudeQues.get(0)));
-                    markerLatLng.set(1, new LatLng(latitudeQues.get(1), longitudeQues.get(1)));
-                    showMarker.drawLine(markerLatLng);
-                    showMarker.drawHere(latitudeQues.get(1), longitudeQues.get(1));
-                    latitudeQues.remove(0); longitudeQues.remove(0);
-//                }
-//            }, 50);
+//            utils.log(logID+latitudeQues.size(), "Drawing "+latitudeQues.get(0)+" x "+longitudeQues.get(0));
+            markerLatLng.set(0, new LatLng(latitudeQues.get(0), longitudeQues.get(0)));
+            markerLatLng.set(1, new LatLng(latitudeQues.get(1), longitudeQues.get(1)));
+            showMarker.drawLine(markerLatLng);
+            showMarker.drawHere(latitudeQues.get(1), longitudeQues.get(1));
+            latitudeQues.remove(0); longitudeQues.remove(0);
         }
     }
     @Override
@@ -489,23 +436,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             serviceIntent = null;
         }
     }
-
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        utils.log(logID, "on resume");
-//        onBackground = false;
-//        if (latitudeQues != null) {
-//            drawTrackLogs();
-//        }
-//    }
-//
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//        utils.log(logID, "goto back");
-//        onBackground = true;
-//    }
 
     Menu mainMenu;
     @Override

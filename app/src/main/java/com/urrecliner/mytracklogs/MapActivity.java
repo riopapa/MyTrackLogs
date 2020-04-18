@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -133,7 +134,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 (float) mapScale - 0.1f));
         s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~\n"+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
         tvTimeInfo.setText(s);
-        if (iMinutes > 0) {
+        if (iMinutes >= 0) {
             s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
             tvLogInfo.setText(s);
         }
@@ -243,7 +244,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //            utils.log(logID," snapShot "+ reDrawCount);
             pureMap = Bitmap.createScaledBitmap(snapshot, 240, 360, false);
             drawTrackLIne(thisMap);
-            if (position > 0) {
+            if (position >= 0) {
                 new Timer().schedule(new TimerTask() {
                     public void run() {
                         thisMap.snapshot(buildMapIcon);
@@ -262,8 +263,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             ImageView iv = findViewById(R.id.smallMap);
             iv.setImageBitmap(trackMap);
             final TrackLog trackLog = trackLogs.get(position);
+            trackLog.setBitMap(trackMap);
+            trackLogs.set(position, trackLog);
             databaseIO.trackMapUpdate(trackLog.getStartTime(), trackMap);
-            trackAdapter.notifyDataSetChanged();
+            trackAdapter.notifyItemChanged(position);
         }
     };
 
