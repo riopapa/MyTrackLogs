@@ -50,6 +50,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
                     intent.putExtra("position", position);
 //                    utils.log(logID, "jump to Map");
                     trackActivity.startActivity(intent);
+                    utils.log(logID, "RETURNED TO HOLDER");
                 }
             });
 

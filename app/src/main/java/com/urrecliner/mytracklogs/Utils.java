@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
+import static com.urrecliner.mytracklogs.Vars.mContext;
 import static com.urrecliner.mytracklogs.Vars.sdfDate;
 import static com.urrecliner.mytracklogs.Vars.sdfDateDay;
 import static com.urrecliner.mytracklogs.Vars.sdfDateDayTime;
@@ -96,7 +97,7 @@ class Utils {
     }
 
     File getPackageDirectory() {
-        File directory = new File(Environment.getExternalStorageDirectory(), getAppLabel(Vars.mContext));
+        File directory = new File(Environment.getExternalStorageDirectory(), getAppLabel(mContext));
         try {
             if (!directory.exists()) {
                 if(directory.mkdirs()) {

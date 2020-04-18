@@ -73,7 +73,7 @@ public class NotificationService extends Service {
         try {
             operation = intent.getIntExtra("operation", NOTIFICATION_BAR_NO_ACTION);
         } catch (Exception e) {
-            utils.logE(logID, "operation EXCEPTION", e);
+//            utils.logE(logID, "operation EXCEPTION", e);
             return START_STICKY;
         }
 //        utils.log(logID, "operation : " + operation);

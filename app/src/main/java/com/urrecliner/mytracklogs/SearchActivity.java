@@ -1,5 +1,6 @@
 package com.urrecliner.mytracklogs;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -15,7 +16,11 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+import static com.urrecliner.mytracklogs.Vars.dummyMap;
 import static com.urrecliner.mytracklogs.Vars.mainActivity;
+import static com.urrecliner.mytracklogs.Vars.searchActivity;
+import static com.urrecliner.mytracklogs.Vars.trackActivity;
+import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class SearchActivity extends AppCompatActivity {
@@ -34,6 +39,7 @@ public class SearchActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
+        searchActivity = this;
         tvShowMeMap = findViewById(R.id.showMeMap);
         calendar = Calendar.getInstance();
         finishDP =  this.findViewById(R.id.datePickerFinish);
@@ -121,11 +127,10 @@ public class SearchActivity extends AppCompatActivity {
             Intent intent;
             @Override
             public void onClick(View view) {
-                intent = new Intent(mainActivity, MapActivity.class);
-                intent.putExtra("startTime", startTime);
-                intent.putExtra("finishTime", finishTime);
-                intent.putExtra("minutes", (int) -1);
-                intent.putExtra("meters", (int) -1);
+                TrackLog trackLog = new TrackLog(startTime, finishTime, -1, -1, dummyMap);
+                Intent intent = new Intent(searchActivity, MapActivity.class);
+                intent.putExtra("trackLog", trackLog);
+                intent.putExtra("position", -1);
                 startActivity(intent);
             }
         });
@@ -140,6 +145,5 @@ public class SearchActivity extends AppCompatActivity {
         tvShowMeMap.setText(s);
         tvShowMeMap.invalidate();
     }
-
 
 }

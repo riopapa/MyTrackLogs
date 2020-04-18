@@ -64,12 +64,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
     GoogleMap thisMap;
-    int reDrawCount = 0;
-    private int mapScale;
     private Activity mapActivity;
     private long startTime, finishTime;
     private int iMinutes, iMeters, position;
-    private Bitmap iBitmap;
     ArrayList<LatLng> lineFromToLatLng;
     ArrayList<LocLog> locLogs;
     TextView tvTimeInfo, tvLogInfo;
@@ -94,13 +91,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
         mapActivity = this;
+//        if (utils == null)
+//            utils = new Utils();
+//        utils.log(logID, "Map Activity");
 
         TrackLog trackLog = getIntent().getParcelableExtra("trackLog");
         startTime = trackLog.getStartTime();
         finishTime = trackLog.getFinishTime();
         iMinutes = trackLog.getMinutes();
         iMeters = trackLog.getMeters();
-        iBitmap = trackLog.getBitMap();
         position = getIntent().getIntExtra("position",-1);
 
         ActionBar ab = this.getSupportActionBar();
@@ -121,34 +120,36 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
 
         thisMap = googleMap;
+        if (showMarker == null)
+            showMarker = new ShowMarker();
         showMarker.init(mapActivity, googleMap);
         String s;
         if (retrieveDBLog()) return;
 
         double fullMapDistance = mapUtils.getFullMapDistance();
-        mapScale = mapUtils.getMapScale(fullMapDistance);
+        int mapScale = mapUtils.getMapScale(fullMapDistance);
 
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
                 (float) mapScale - 0.1f));
-        View v = findViewById(R.id.fragMap);
-        v.post(new Runnable() {
-            @Override
-            public void run() {
-                new Timer().schedule(new TimerTask() {
-                    public void run() {
-                        reDrawCount = 0;
-                        thisMap.snapshot(mapSnapShotCallback);
-                    }
-                }, 1200);
-            }
-        });
-
         s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~\n"+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
         tvTimeInfo.setText(s);
         if (iMinutes > 0) {
             s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
             tvLogInfo.setText(s);
         }
+        else
+            tvLogInfo.setVisibility(View.INVISIBLE);
+        View v = findViewById(R.id.fragMap);
+        v.post(new Runnable() {
+            @Override
+            public void run() {
+                new Timer().schedule(new TimerTask() {
+                    public void run() {
+                        thisMap.snapshot(mapSaveShot);
+                    }
+                }, 500);
+            }
+        });
     }
 
     private void drawTrackLIne(GoogleMap googleMap) {
@@ -164,6 +165,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             color = animatedColor.with(ratio);
             if (i % 3 == 0)
                 color = color ^ 0x00333333;
+            else if (i % 2 == 0)
+                color = 0xFF0A0A0A;
             PolylineOptions polyOptions = new PolylineOptions();
             polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
             polyOptions.addAll(lineFromToLatLng);
@@ -171,8 +174,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             googleMap.addPolyline(polyOptions);
         }
 
-        showMarker.drawStart(locLogs.get(0).latitude, locLogs.get(0).longitude);
-        showMarker.drawFinish(locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude);
+        showMarker.drawStart(locLogs.get(0).latitude, locLogs.get(0).longitude, true);
+        showMarker.drawFinish(locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude, true);
     }
 
     private boolean retrieveDBLog() {
@@ -231,43 +234,36 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         return super.onOptionsItemSelected(item);
     }
-    GoogleMap.SnapshotReadyCallback mapSnapShotCallback = new GoogleMap.SnapshotReadyCallback() {
 
-        Bitmap resultMap = null;
+    Bitmap pureMap = null, trackMap = null;
+    GoogleMap.SnapshotReadyCallback mapSaveShot = new GoogleMap.SnapshotReadyCallback() {
+
         @Override
         public void onSnapshotReady(Bitmap snapshot) {
-            utils.log(logID," snapShot "+ reDrawCount);
-            if (reDrawCount == 0) {
-                resultMap = Bitmap.createScaledBitmap(snapshot, 240, 360, false);
-//                Bitmap convertedBitmap = Bitmap.createBitmap(sBitmap.getWidth(), sBitmap.getHeight(), Bitmap.Config.ARGB_8888);
-//                Canvas canvas = new Canvas(convertedBitmap);
-//                Paint paint = new Paint();
-//                paint.setColor(Color.BLACK);
-//                canvas.drawBitmap(sBitmap, 0, 0, paint);
-//                resultMap = filterBitmap(sBitmap);
-                drawTrackLIne(thisMap);
-//                ImageView iv = findViewById(R.id.smallMap);
-//                iv.setImageBitmap(resultMap);
-                reDrawCount++;
+//            utils.log(logID," snapShot "+ reDrawCount);
+            pureMap = Bitmap.createScaledBitmap(snapshot, 240, 360, false);
+            drawTrackLIne(thisMap);
+            if (position > 0) {
                 new Timer().schedule(new TimerTask() {
                     public void run() {
-                        thisMap.snapshot(mapSnapShotCallback);
+                        thisMap.snapshot(buildMapIcon);
                     }
-                }, 2000);
+                }, 500);
             }
-            else if (reDrawCount < 3) {
-                utils.log(logID, "Redraw "+ reDrawCount);
-                reDrawCount++;
-                resultMap = filterBitmap(resultMap, Bitmap.createScaledBitmap(snapshot, 240, 360, false));
-                ImageView iv = findViewById(R.id.smallMap);
-                iv.setImageBitmap(resultMap);
-                final TrackLog trackLog = trackLogs.get(position);
-                databaseIO.trackMapUpdate(trackLog.getStartTime(), resultMap);
-//                trackAdapter.notifyItemChanged(position);
-                trackAdapter.notifyDataSetChanged();
-                View v = findViewById(R.id.track_recycler);
-                v.invalidate();
-            }
+        }
+    };
+
+    GoogleMap.SnapshotReadyCallback buildMapIcon = new GoogleMap.SnapshotReadyCallback() {
+
+        @Override
+        public void onSnapshotReady(Bitmap snapshot) {
+//            utils.log(logID, "Redraw "+ reDrawCount);
+            trackMap = filterBitmap(pureMap, Bitmap.createScaledBitmap(snapshot, 240, 360, false));
+            ImageView iv = findViewById(R.id.smallMap);
+            iv.setImageBitmap(trackMap);
+            final TrackLog trackLog = trackLogs.get(position);
+            databaseIO.trackMapUpdate(trackLog.getStartTime(), trackMap);
+            trackAdapter.notifyDataSetChanged();
         }
     };
 
@@ -278,12 +274,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         int[] pixelsR = new int[width * height];
         bitMap.getPixels(pixelsB, 0, width, 0, 0, width, height);
         routeMap.getPixels(pixelsR, 0, width, 0, 0, width, height);
-        int cnt = 0;
         for(int x = 0; x < pixelsR.length; ++x) {
             if (pixelsB[x] == pixelsR[x])
                 pixelsR[x] = pixelsR[x] & 0x7FFFFFFF;
         }
-        utils.log("count","cnt="+cnt+" org "+width+"x"+height+"="+(width*height));
+//        utils.log("count","cnt="+cnt+" org "+width+"x"+height+"="+(width*height));
         // create result bitmap output
         Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         //set pixels

@@ -39,7 +39,7 @@ class ShowMarker {
         polyOptions.endCap(endCap);
     }
 
-    void drawStart (final double latitude, final double longitude) {
+    void drawStart (final double latitude, final double longitude, final boolean big) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -51,14 +51,15 @@ class ShowMarker {
                         markerStart = thisMap.addMarker(new MarkerOptions()
                                 .zIndex(200f)
                                 .position(new LatLng(latitude, longitude))
-                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_start)));
+                                .icon(BitmapDescriptorFactory.fromResource(
+                                        (big)? R.mipmap.marker_start_big :R.mipmap.marker_start)));
                     }
                 });
             }
         });
     }
 
-    void drawFinish (final double latitude, final double longitude) {
+    void drawFinish (final double latitude, final double longitude, final boolean big) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -70,7 +71,8 @@ class ShowMarker {
                         markerFinish = thisMap.addMarker(new MarkerOptions()
                                 .zIndex(300f)
                                 .position(new LatLng(latitude, longitude))
-                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marker_finish)));
+                                .icon(BitmapDescriptorFactory.fromResource(
+                                        (big) ? R.mipmap.marker_finish_big:R.mipmap.marker_finish)));
                     }
                 });
             }

@@ -264,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             markLines.remove();
             markLines = null;
         }
-        showMarker.drawStart(startLatitude, startLongitude);
+        showMarker.drawStart(startLatitude, startLongitude, false);
 
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
         databaseIO.trackInsert(startTime);
@@ -281,13 +281,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         utils.log(logID,"Final map scale is "+mapScale);
         mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS), mapScale));
         elapsedTime = minutes + finishTime - beginTime;
-//            minutes += System.currentTimeMillis() - beginTime;
         databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) elapsedTime / 60000);
         utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));
-            dbCount = 0;
-//            databaseIO.trackDelete(startTime);
         showMarker.drawHereOff();
-        showMarker.drawFinish(latitudeGPS, longitudeGPS);
+        showMarker.drawFinish(latitudeGPS, longitudeGPS, false);
         updateNotification(ACTION_UPDATE);
         updateNotification(ACTION_STOP);
     }
@@ -300,9 +297,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (deltaTime < 200)
             return;
         double distance = mapUtils.getShortDistance();
-        double speed = distance / (double)deltaTime * 1000f / 60f / 60f;
+        double speed = distance / (double)deltaTime * 1000f / 60f;
         utils.log("Source", "distance "+distance+" speed " + speed+" time "+deltaTime);
-        if (isWalk && (speed>50f || speed < 0.01f)) {
+        if (isWalk && (speed>50f || speed < 0.001f)) {
             utils.log("Walk", "BAD " + " XSpeed " + speed+" XTime "+deltaTime);
             return;
         }

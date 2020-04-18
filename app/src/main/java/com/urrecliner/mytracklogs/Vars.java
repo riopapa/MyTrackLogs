@@ -24,6 +24,7 @@ class Vars {
     static SharedPreferences sharePrefer;
     static ArrayList<TrackLog> trackLogs;
     static TrackAdapter trackAdapter;
+    static SearchActivity searchActivity;
     static boolean modeStarted = false, modePaused = false;
 
     static double prevLatitude, prevLongitude, nowLatitude, nowLongitude;
