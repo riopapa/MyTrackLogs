@@ -43,21 +43,18 @@ class GPSTracker extends Service implements LocationListener {
             isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
-//            utils.log("status ","GPS "+isGPSEnabled+" net "+isNetworkEnabled);
             if (!isGPSEnabled && !isNetworkEnabled) {
                 // No network provider is enabled
             } else {
                 if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     return;
                 }
-                // If GPS enabled, get latitude/longitude using GPS Services
                 if (isGPSEnabled) {
                     assert locationManager != null;
                     locationManager.requestLocationUpdates(
                             LocationManager.GPS_PROVIDER,
                             MIN_TIME_WALK_UPDATES,
                             MIN_DISTANCE_WALK, this);
-                    //    Log.d("GPS Enabled", "GPS Enabled");
                     if (locationManager != null) {
                         location = locationManager
                                 .getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -73,7 +70,6 @@ class GPSTracker extends Service implements LocationListener {
                             LocationManager.NETWORK_PROVIDER,
                             MIN_TIME_WALK_UPDATES,
                             MIN_DISTANCE_WALK, this);
-                    //   Log.d("Network", "Network");
                     if (locationManager != null) {
                         location = locationManager
                                 .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);

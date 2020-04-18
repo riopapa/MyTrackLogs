@@ -7,7 +7,6 @@ public class AnimatedColor {
     private final float[] startHSV, endHSV;
     private float[] move = new float[3];
 
-
     AnimatedColor(int start, int end) {
         startColor = start;
         endColor = end;

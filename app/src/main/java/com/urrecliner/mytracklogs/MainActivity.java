@@ -8,11 +8,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Base64;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -32,11 +30,14 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static com.urrecliner.mytracklogs.MapUtils.locEast;
+import static com.urrecliner.mytracklogs.MapUtils.locNorth;
+import static com.urrecliner.mytracklogs.MapUtils.locSouth;
+import static com.urrecliner.mytracklogs.MapUtils.locWest;
 import static com.urrecliner.mytracklogs.Vars.ACTION_EXIT;
 import static com.urrecliner.mytracklogs.Vars.ACTION_HIDE_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.ACTION_INIT;
@@ -90,10 +91,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
     double totSpeed = 0;
-//    Timer forceLongUpdate = new Timer();
-//    Timer forceShortUpdate = new Timer();
     final double mapDiff = 0.01f;
-    boolean onBackground = false;
 
     ArrayList<LatLng> latLngPos;
     ArrayList<Double> latitudeSaves, longitudeSaves, latitudeQues, longitudeQues;
@@ -184,10 +182,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void goStop_Clicked() {
-        if (modeStarted) {  // STOP
+        if (modeStarted) {
             confirmFinish();
         }
-        else {  // START
+        else {
             go_Clicked();
         }
     }
@@ -268,8 +266,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
         databaseIO.trackInsert(startTime);
-        locSouth = startLatitude-mapDiff; locNorth = startLatitude+mapDiff;
-        locWest = startLongitude-mapDiff; locEast = startLongitude+mapDiff;
+        locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
     }
 
     void endTrackLog() {
@@ -282,7 +279,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS), mapScale));
         elapsedTime = minutes + finishTime - beginTime;
         databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) elapsedTime / 60000);
-        utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));
+//        utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));/
         showMarker.drawHereOff();
         showMarker.drawFinish(latitudeGPS, longitudeGPS, false);
         updateNotification(ACTION_UPDATE);
