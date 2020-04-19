@@ -57,7 +57,7 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private final String logID = "Map";
-    private static final int POLYLINE_STROKE_WIDTH_PX = 20;
+    private static final int POLYLINE_STROKE_WIDTH_PX = 24;
     private static final int PATTERN_DASH_LENGTH_PX = 6;
     private static final int PATTERN_GAP_LENGTH_PX = 6;
 //    private static final PatternItem DOT = new Dot();
@@ -92,9 +92,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
         mapActivity = this;
-//        if (utils == null)
-//            utils = new Utils();
-//        utils.log(logID, "Map Activity");
         int orientation = this.getResources().getConfiguration().orientation;
         if (orientation == Configuration.ORIENTATION_PORTRAIT) {
             iconWidth = 200; iconHeight = 360;
@@ -107,13 +104,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         iMinutes = trackLog.getMinutes();
         iMeters = trackLog.getMeters();
         position = getIntent().getIntExtra("position",-1);
-
-//        ActionBar ab = this.getSupportActionBar();
-//        ab.setTitle(R.string.review_map);
-//        ab.setIcon(R.mipmap.my_face);
-//        ab.setDisplayUseLogoEnabled(true);
-//        ab.setDisplayShowHomeEnabled(true);
-
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.fragMap);
         mapFragment.getMapAsync(this);
@@ -174,7 +164,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         lineFromToLatLng = new ArrayList<>();
         lineFromToLatLng.add(new LatLng(0,0));
         lineFromToLatLng.add(new LatLng(0,0));
-        AnimatedColor animatedColor = new AnimatedColor(Color.RED, Color.BLUE);
+        AnimatedColor animatedColor = new AnimatedColor(Color.MAGENTA, Color.CYAN);
         int color = 0;
         for (int i = 0; i < locLogs.size()-2; i++) {
             lineFromToLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
@@ -182,9 +172,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             float ratio = (float) (locLogs.get(i).logTime-timeBegin) / timeDiff;
             color = animatedColor.with(ratio);
             if (i % 3 == 0)
-                color = color ^ 0x00333333;
+                color = color ^ 0x03333333;
             else if (i % 2 == 0)
-                color = 0xFF0A0A0A;
+                color = 0xFF0F0F0F;
             PolylineOptions polyOptions = new PolylineOptions();
             polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
             polyOptions.addAll(lineFromToLatLng);
@@ -229,29 +219,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             utils.log("no data",utils.long2DateDay(startTime)+" "+utils.long2Time(startTime)+" ~ "+utils.long2DateDay(finishTime)+" "+utils.long2Time(finishTime));
             return true;
         }
-//        utils.log("cursor","W"+ locWest +" E"+ locEast +" S"+ locSouth +" N"+ locNorth);
         return false;
     }
-
-//    Menu mapMenu;
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        mapMenu = menu;
-//        getMenuInflater().inflate(R.menu.map_menu, menu);
-//        MenuItem item = menu.findItem(R.id.deleteLog);
-//        item.setVisible(!(position == -1));
-//        return true;
-//    }
-//
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//
-//        if (item.getItemId() == R.id.deleteLog) {
-//            deleteThisLogOrNot(position);
-//            finish();
-//        }
-//        return super.onOptionsItemSelected(item);
-//    }
 
     Bitmap pureMap = null, trackMap = null;
     GoogleMap.SnapshotReadyCallback mapSaveShot = new GoogleMap.SnapshotReadyCallback() {

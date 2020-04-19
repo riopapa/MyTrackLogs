@@ -21,7 +21,7 @@ class ShowMarker {
     private Activity showActivity;
     private CustomCap endCap;
     private PolylineOptions polyOptions;
-    private static final int POLYLINE_STROKE_WIDTH_PX = 12;
+    private static final int POLYLINE_STROKE_WIDTH_PX = 16;
 
     void init(Activity activity, GoogleMap map) {
         showActivity = activity;
