@@ -1,22 +1,17 @@
 package com.urrecliner.mytracklogs;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.location.Geocoder;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -32,6 +27,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -48,7 +44,6 @@ import static com.urrecliner.mytracklogs.Vars.nowLongitude;
 import static com.urrecliner.mytracklogs.Vars.prevLatitude;
 import static com.urrecliner.mytracklogs.Vars.prevLongitude;
 import static com.urrecliner.mytracklogs.Vars.showMarker;
-import static com.urrecliner.mytracklogs.Vars.trackActivity;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.utils;
@@ -63,7 +58,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //    private static final PatternItem DOT = new Dot();
     private static final PatternItem DASH = new Dash(PATTERN_DASH_LENGTH_PX);
     private static final PatternItem GAP = new Gap(PATTERN_GAP_LENGTH_PX);
-
+    private String startAddress;
     private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
     GoogleMap thisMap;
     private Activity mapActivity;
@@ -72,7 +67,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private int iMinutes, iMeters, position, iconWidth, iconHeight;
     ArrayList<LatLng> lineFromToLatLng;
     ArrayList<LocLog> locLogs;
-    TextView tvTimeInfo, tvLogInfo;
+    TextView tvTimeInfo, tvLogInfo, tvPlace;
     SupportMapFragment mapFragment;
 
     static class LocLog {
@@ -109,6 +104,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
         tvTimeInfo =  findViewById(R.id.timeSummary);
         tvLogInfo =  findViewById(R.id.logSummary);
+        tvPlace = findViewById(R.id.logPlace);
 
         ImageView iv = findViewById(R.id.smallMap);
         iv.setOnClickListener(new View.OnClickListener() {
@@ -128,13 +124,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         showMarker.init(mapActivity, googleMap);
         String s;
         if (retrieveDBLog()) return;
+        Geocoder geocoder = new Geocoder(this, Locale.KOREA);
+        startAddress = GPS2Address.get(geocoder, locLogs.get(0).latitude, locLogs.get(0).longitude);
+        String finishAddress = GPS2Address.get(geocoder, locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude);
+        if (!startAddress.equals(finishAddress))
+            startAddress += "~"+finishAddress;
 
         double fullMapDistance = mapUtils.getFullMapDistance();
         int mapScale = mapUtils.getMapScale(fullMapDistance);
 
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
                 (float) mapScale - 0.1f));
-        s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~\n"+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
+        s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~ "+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
         tvTimeInfo.setText(s);
         timeBegin =  locLogs.get(0).logTime;
         timeDiff = locLogs.get(locLogs.size()-1).logTime - locLogs.get(0).logTime;
@@ -144,6 +145,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         else
             tvLogInfo.setVisibility(View.INVISIBLE);
+        tvPlace.setText(startAddress);
         View v = findViewById(R.id.fragMap);
         v.post(new Runnable() {
             @Override
@@ -250,8 +252,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             iv.setImageBitmap(trackMap);
             final TrackLog trackLog = trackLogs.get(position);
             trackLog.setBitMap(trackMap);
+            trackLog.setPlaceName(startAddress);
             trackLogs.set(position, trackLog);
-            databaseIO.trackMapUpdate(trackLog.getStartTime(), trackMap);
+            databaseIO.trackMapPlaceUpdate(trackLog.getStartTime(), trackMap, startAddress);
             trackAdapter.notifyItemChanged(position);
         }
     };

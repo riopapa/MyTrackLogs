@@ -48,7 +48,8 @@ public class TrackActivity extends AppCompatActivity {
                     int meters = cursor.getInt(cursor.getColumnIndex("meters"));
                     int minutes = cursor.getInt(cursor.getColumnIndex("minutes"));
                     Bitmap bitmap = mapUtils.StringToBitMap(cursor.getString(cursor.getColumnIndex("bitMap")));
-                    trackLogs.add(new TrackLog(startTime, finishTime, meters, minutes, bitmap));
+                    String placeName = cursor.getString(cursor.getColumnIndex("placeName"));
+                    trackLogs.add(new TrackLog(startTime, finishTime, meters, minutes, bitmap, placeName));
                 } while (cursor.moveToNext());
             }
         }

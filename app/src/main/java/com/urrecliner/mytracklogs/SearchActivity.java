@@ -127,7 +127,7 @@ public class SearchActivity extends AppCompatActivity {
             Intent intent;
             @Override
             public void onClick(View view) {
-                TrackLog trackLog = new TrackLog(startTime, finishTime, -1, -1, dummyMap);
+                TrackLog trackLog = new TrackLog(startTime, finishTime, -1, -1, dummyMap, "");
                 Intent intent = new Intent(searchActivity, MapActivity.class);
                 intent.putExtra("trackLog", trackLog);
                 intent.putExtra("position", -1);

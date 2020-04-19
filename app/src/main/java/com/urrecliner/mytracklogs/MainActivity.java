@@ -174,6 +174,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
         updateNotification(ACTION_INIT);
         dummyMap = mapUtils.StringToBitMap(mapUtils.BitMapToString(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)));
+        latLngPos = new ArrayList<>(); latitudeSaves = new ArrayList<>(); longitudeSaves = new ArrayList<>();
+        latitudeQues = new ArrayList<>(); longitudeQues = new ArrayList<>();
+        startLatitude = gpsTracker.getGpsLatitude();
+        startLongitude = gpsTracker.getGpsLongitude();
+        for (int i = 0; i < QUE_COUNT; i++) { latitudeSaves.add(startLatitude); longitudeSaves.add(startLongitude); }
     }
 
     void goStop_Clicked() {
@@ -188,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void go_Clicked() {
         modeStarted = true;
         modePaused = false;
+        gpsTracker.stopGPSUpdate();
         beginTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_stop);
         fabPauseRestart.setAlpha(1f);
@@ -218,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void finish_tracking() {
         modeStarted = false;
         modePaused = false;
-        utils.log(logID,"Finish Summary average speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
+        utils.log(logID,"// Finish// values average speed:"+(totSpeed)/dbCount+" Max dist="+dMax+", Min dist="+dMin+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
         endTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_start);
         fabPauseRestart.setAlpha(0.2f);
@@ -232,11 +238,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startTime = System.currentTimeMillis();
         beginTime = startTime;
         prevLogTime = startTime;
-        latLngPos = new ArrayList<>(); latitudeSaves = new ArrayList<>(); longitudeSaves = new ArrayList<>();
-        latitudeQues = new ArrayList<>(); longitudeQues = new ArrayList<>();
-        startLatitude = gpsTracker.getGpsLatitude();
-        startLongitude = gpsTracker.getGpsLongitude();
-        for (int i = 0; i < QUE_COUNT; i++) { latitudeSaves.add(startLatitude); longitudeSaves.add(startLongitude); }
         latLngPos.add(new LatLng(startLatitude, startLongitude));
         utils.log(logID, "startLog " + startLatitude + " x " + startLongitude);
         latitudeQues.add(startLatitude); longitudeQues.add(startLongitude);
@@ -281,6 +282,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateNotification(ACTION_STOP);
     }
 
+    double dMax = 999999999999999f, dMin = -999999999999999f;
     void responseGPSLocation() {
 
         nowLatitude = latitudeGPS; nowLongitude = longitudeGPS;
@@ -289,8 +291,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (deltaTime < 200)
             return;
         double distance = mapUtils.getShortDistance();
-        double speed = distance / (double)deltaTime * 1000f / 60f;
+        double speed = distance / (double)deltaTime * 1000f * 60f;
         utils.log("Source", "distance "+distance+" speed " + speed+" time "+deltaTime);
+        dMax = Math.max(dMax,distance); dMin = Math.min(dMin, distance);
         if (isWalk && (speed>50f || speed < 0.001f)) {
             utils.log("Walk", "BAD " + " XSpeed " + speed+" XTime "+deltaTime);
             return;
@@ -299,6 +302,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         String s = utils.minute2Text((int) elapsedTime / 60000);
         tvMinutes.setText(s);
         totSpeed += speed;
+        utils.log(logID, "latitudeSave size="+latitudeSaves.size());
         latitudeSaves.remove(0); longitudeSaves.remove(0);
         latitudeSaves.add(nowLatitude); longitudeSaves.add(nowLongitude);
         adjustPosition();
@@ -370,7 +374,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void notificationClicked(int operation) {
-        utils.log(logID, "notificationClicked "+operation);
+//        utils.log(logID, "notificationClicked "+operation);
         switch (operation) {
             case NOTIFICATION_BAR_GO: // GO_STOP
                 go_Clicked();
@@ -434,6 +438,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (serviceIntent != null) {
             stopService(serviceIntent);
             serviceIntent = null;
+        }
+        try {
+            databaseIO.finalize();
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
     }
 

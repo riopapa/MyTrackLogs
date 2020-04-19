@@ -29,7 +29,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     static class TrackViewHolder extends RecyclerView.ViewHolder {
 
         final String logID = "trackAdapter";
-        TextView tvStartFinish, tvMeterMinutes;
+        TextView tvStartFinish, tvMeterMinutes, tvPlaceName;
         ImageView ivBitmap;
         View viewLine;
 
@@ -39,6 +39,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
             this.tvStartFinish = itemView.findViewById(R.id.startFinishTime);
             this.tvMeterMinutes = itemView.findViewById(R.id.metersMinutes);
             this.ivBitmap = itemView.findViewById(R.id.trackMap);
+            this.tvPlaceName = itemView.findViewById(R.id.placeName);
             this.viewLine.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -51,7 +52,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
                     trackActivity.startActivity(intent);
                 }
             });
-
             viewLine.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
@@ -112,6 +112,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         backColor ^= 0xAAAAAA;
         viewHolder.tvStartFinish.setTextColor(backColor);
         viewHolder.tvMeterMinutes.setTextColor(backColor);
+        viewHolder.tvPlaceName.setText(trackLog.getPlaceName());
         Bitmap bitmap = trackLog.getBitMap();
         if (bitmap.sameAs(dummyMap))
             viewHolder.ivBitmap.setImageResource(R.mipmap.my_track_log);

@@ -33,7 +33,8 @@ class DatabaseIO extends SQLiteOpenHelper {
             " finishTime INTEGER, " + // 1
             " meters INTEGER, " + // 2
             " minutes INTEGER, " + // 3
-            " bitMap LONGTEXT) ;"; // 4
+            " bitMap LONGTEXT, " + // 4
+            " placeName TEXT );"; // 4
 
     DatabaseIO() {
         super(mContext, utils.getPackageDirectory().toString()+ "/" + DATABASE_NAME, null, SCHEMA_VERSION);
@@ -77,12 +78,13 @@ class DatabaseIO extends SQLiteOpenHelper {
         }
     }
 
-    void trackMapUpdate(long startTime, Bitmap bitmap ) {
+    void trackMapPlaceUpdate(long startTime, Bitmap bitmap, String placeName ) {
         if (dbIO == null)
             dbIO = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put("startTime", startTime);
         cv.put("bitMap", mapUtils.BitMapToString(bitmap));
+        cv.put("placeName", placeName);
         try {
             dbIO.update(TABLE_TRACK, cv, "startTime = ?", new String[]{String.valueOf(startTime)});
         } catch (Exception e) {
@@ -140,17 +142,16 @@ class DatabaseIO extends SQLiteOpenHelper {
         Toast.makeText(mContext, cnt+" logs deleted",Toast.LENGTH_LONG).show();
     }
 
-    public void close() {
+    @Override
+    public void finalize() throws Throwable {
         if (dbIO != null)
             dbIO.close();
+        super.finalize();
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
     }
-
-    @Override
-    protected void finalize() throws Throwable { this.close(); super.finalize(); }
 
 }
 
