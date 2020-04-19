@@ -4,9 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:id="@+id/one_track"
-    android:layout_marginTop="0dp"
-    android:layout_marginBottom="0dp"
-    android:background="@color/cardview_dark_background"
+    android:layout_marginTop="2dp"
+    android:layout_marginBottom="2dp"
+    android:padding="3dp"
     android:orientation="horizontal"
     android:tag="tracks log">
 

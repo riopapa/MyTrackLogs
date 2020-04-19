@@ -535,7 +535,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED);
     }
 
-    //    @TargetApi(Build.VERSION_CODES.M)
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == ALL_PERMISSIONS_RESULT) {
