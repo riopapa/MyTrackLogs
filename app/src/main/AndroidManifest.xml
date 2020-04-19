@@ -30,19 +30,16 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <!--
-             The API key for Google Maps-based APIs.
-        -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/maps_api_key" />
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity" android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MapActivity" />
+        <activity android:name=".MapActivity" android:theme="@style/NoActionBar" />
         <activity android:name=".TrackActivity" />
         <activity android:name=".SearchActivity" />
         <service android:name=".NotificationService" />

@@ -1,13 +1,14 @@
 package com.urrecliner.mytracklogs;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -66,8 +67,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
     GoogleMap thisMap;
     private Activity mapActivity;
-    private long startTime, finishTime;
-    private int iMinutes, iMeters, position;
+    private long startTime, finishTime, timeBegin;
+    private float timeDiff;
+    private int iMinutes, iMeters, position, iconWidth, iconHeight;
     ArrayList<LatLng> lineFromToLatLng;
     ArrayList<LocLog> locLogs;
     TextView tvTimeInfo, tvLogInfo;
@@ -82,8 +84,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             this.latitude = latitude;
             this.longitude = longitude;
         }
-        double getLatitude() { return latitude; }
-        double getLongitude() { return longitude; }
     }
 
     @Override
@@ -95,7 +95,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //        if (utils == null)
 //            utils = new Utils();
 //        utils.log(logID, "Map Activity");
-
+        int orientation = this.getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+            iconWidth = 200; iconHeight = 360;
+        } else {
+            iconWidth = 360; iconHeight = 200;
+        }
         TrackLog trackLog = getIntent().getParcelableExtra("trackLog");
         startTime = trackLog.getStartTime();
         finishTime = trackLog.getFinishTime();
@@ -103,11 +108,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         iMeters = trackLog.getMeters();
         position = getIntent().getIntExtra("position",-1);
 
-        ActionBar ab = this.getSupportActionBar();
-        ab.setTitle(R.string.review_map);
-        ab.setIcon(R.mipmap.my_face);
-        ab.setDisplayUseLogoEnabled(true);
-        ab.setDisplayShowHomeEnabled(true);
+//        ActionBar ab = this.getSupportActionBar();
+//        ab.setTitle(R.string.review_map);
+//        ab.setIcon(R.mipmap.my_face);
+//        ab.setDisplayUseLogoEnabled(true);
+//        ab.setDisplayShowHomeEnabled(true);
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.fragMap);
@@ -115,6 +120,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         tvTimeInfo =  findViewById(R.id.timeSummary);
         tvLogInfo =  findViewById(R.id.logSummary);
 
+        ImageView iv = findViewById(R.id.smallMap);
+        iv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                view.setVisibility(View.INVISIBLE);
+            }
+        });
     }
 
     @Override
@@ -134,6 +146,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 (float) mapScale - 0.1f));
         s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~\n"+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
         tvTimeInfo.setText(s);
+        timeBegin =  locLogs.get(0).logTime;
+        timeDiff = locLogs.get(locLogs.size()-1).logTime - locLogs.get(0).logTime;
         if (iMinutes >= 0) {
             s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
             tvLogInfo.setText(s);
@@ -148,9 +162,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     public void run() {
                         thisMap.snapshot(mapSaveShot);
                     }
-                }, 500);
+                }, 100);
             }
         });
+//        googleMap.setMyLocationEnabled(true);
+//        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
+        googleMap.getUiSettings().setCompassEnabled(true);
     }
 
     private void drawTrackLIne(GoogleMap googleMap) {
@@ -160,9 +177,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         AnimatedColor animatedColor = new AnimatedColor(Color.RED, Color.BLUE);
         int color = 0;
         for (int i = 0; i < locLogs.size()-2; i++) {
-            lineFromToLatLng.set(0, new LatLng(locLogs.get(i).getLatitude(), locLogs.get(i).getLongitude()));
-            lineFromToLatLng.set(1, new LatLng(locLogs.get(i+1).getLatitude(), locLogs.get(i+1).getLongitude()));
-            float ratio = (float) i / (float) locLogs.size();
+            lineFromToLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
+            lineFromToLatLng.set(1, new LatLng(locLogs.get(i+1).latitude, locLogs.get(i+1).longitude));
+            float ratio = (float) (locLogs.get(i).logTime-timeBegin) / timeDiff;
             color = animatedColor.with(ratio);
             if (i % 3 == 0)
                 color = color ^ 0x00333333;
@@ -216,33 +233,33 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         return false;
     }
 
-    Menu mapMenu;
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        mapMenu = menu;
-        getMenuInflater().inflate(R.menu.map_menu, menu);
-        MenuItem item = menu.findItem(R.id.deleteLog);
-        item.setVisible(!(position == -1));
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        if (item.getItemId() == R.id.deleteLog) {
-            deleteThisLogOrNot(position);
-            finish();
-        }
-        return super.onOptionsItemSelected(item);
-    }
+//    Menu mapMenu;
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        mapMenu = menu;
+//        getMenuInflater().inflate(R.menu.map_menu, menu);
+//        MenuItem item = menu.findItem(R.id.deleteLog);
+//        item.setVisible(!(position == -1));
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//
+//        if (item.getItemId() == R.id.deleteLog) {
+//            deleteThisLogOrNot(position);
+//            finish();
+//        }
+//        return super.onOptionsItemSelected(item);
+//    }
 
     Bitmap pureMap = null, trackMap = null;
     GoogleMap.SnapshotReadyCallback mapSaveShot = new GoogleMap.SnapshotReadyCallback() {
 
         @Override
-        public void onSnapshotReady(Bitmap snapshot) {
+        public void onSnapshotReady(Bitmap snapshot) {      // save map to bitmap without tracklog
 //            utils.log(logID," snapShot "+ reDrawCount);
-            pureMap = Bitmap.createScaledBitmap(snapshot, 240, 360, false);
+            pureMap = Bitmap.createScaledBitmap(snapshot, iconWidth, iconHeight, false);
             drawTrackLIne(thisMap);
             if (position >= 0) {
                 new Timer().schedule(new TimerTask() {
@@ -257,9 +274,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     GoogleMap.SnapshotReadyCallback buildMapIcon = new GoogleMap.SnapshotReadyCallback() {
 
         @Override
-        public void onSnapshotReady(Bitmap snapshot) {
+        public void onSnapshotReady(Bitmap snapshot) {  // save map to bitmap with trackLog
 //            utils.log(logID, "Redraw "+ reDrawCount);
-            trackMap = filterBitmap(pureMap, Bitmap.createScaledBitmap(snapshot, 240, 360, false));
+            trackMap = filterBitmap(pureMap, Bitmap.createScaledBitmap(snapshot, iconWidth, iconHeight, false));
             ImageView iv = findViewById(R.id.smallMap);
             iv.setImageBitmap(trackMap);
             final TrackLog trackLog = trackLogs.get(position);
@@ -279,37 +296,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         routeMap.getPixels(pixelsR, 0, width, 0, 0, width, height);
         for(int x = 0; x < pixelsR.length; ++x) {
             if (pixelsB[x] == pixelsR[x])
-                pixelsR[x] = pixelsR[x] & 0x7FFFFFFF;
+                pixelsR[x] = pixelsR[x] & 0x0F0F0F0F;       // grey out
         }
-//        utils.log("count","cnt="+cnt+" org "+width+"x"+height+"="+(width*height));
-        // create result bitmap output
         Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        //set pixels
         result.setPixels(pixelsR, 0, width, 0, 0, width, height);
         return result;
-    }
-
-    private static void deleteThisLogOrNot(int pos) {
-        final int position = pos;
-        final TrackLog TrackLog = trackLogs.get(pos);
-        AlertDialog.Builder builder = new AlertDialog.Builder(trackActivity);
-        builder.setTitle("이동 정보 처리");
-        String s = utils.long2DateDay(TrackLog.getStartTime())+" "+utils.long2Time(TrackLog.getStartTime())+"~"+
-                utils.long2Time(TrackLog.getFinishTime())+"\n"+
-                decimalComma.format(TrackLog.getMeters())+"m "+utils.minute2Text(TrackLog.getMinutes());
-        builder.setMessage(s);
-        builder.setNegativeButton("Delete",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        long fromTime = TrackLog.getStartTime();
-                        long toTime = TrackLog.getFinishTime();
-                        databaseIO.trackDelete(fromTime);
-                        databaseIO.logDeleteFromTo(fromTime, toTime);
-                        trackLogs.remove(position);
-                        trackAdapter.notifyItemRemoved(position);
-                    }
-                });
-        AlertDialog dialog = builder.create();
-        dialog.show();
     }
 }

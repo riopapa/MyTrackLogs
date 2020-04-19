@@ -9,10 +9,11 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="AppTheme.NoActionBar">
-        <item name="windowActionBar">true</item>
-        <item name="windowNoTitle">false</item>
-        <item name="android:windowFullscreen">false</item>
+    <style name="NoActionBar" parent="@style/Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
     </style>
 
     <style name="myTimePicker" parent="android:Widget.Material.Light.TimePicker">
@@ -37,4 +38,5 @@
         <item name="android:textStyle">bold</item>
         <item name="android:textColorPrimary">#F107ff</item>
     </style>
+
 </resources>
