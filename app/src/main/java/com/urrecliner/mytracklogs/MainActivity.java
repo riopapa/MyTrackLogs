@@ -179,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startLatitude = gpsTracker.getGpsLatitude();
         startLongitude = gpsTracker.getGpsLongitude();
         for (int i = 0; i < QUE_COUNT; i++) { latitudeSaves.add(startLatitude); longitudeSaves.add(startLongitude); }
+        gpsTracker.stopGPSUpdate();
     }
 
     void goStop_Clicked() {

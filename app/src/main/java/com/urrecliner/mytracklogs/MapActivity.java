@@ -139,7 +139,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         tvTimeInfo.setText(s);
         timeBegin =  locLogs.get(0).logTime;
         timeDiff = locLogs.get(locLogs.size()-1).logTime - locLogs.get(0).logTime;
-        if (iMinutes >= 0) {
+        if (position != -1) {
             s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
             tvLogInfo.setText(s);
         }
@@ -238,6 +238,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         thisMap.snapshot(buildMapIcon);
                     }
                 }, 500);
+            }
+            else {
+                ImageView iv = findViewById(R.id.smallMap);
+                iv.setVisibility(View.INVISIBLE);
             }
         }
     };

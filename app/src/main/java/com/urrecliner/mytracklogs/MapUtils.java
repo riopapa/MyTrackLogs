@@ -15,7 +15,6 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 
 class MapUtils {
 
-
     private Location locationPrev = new Location("");
     private Location locationNow = new Location("");
     static double locSouth, locNorth, locWest, locEast;
