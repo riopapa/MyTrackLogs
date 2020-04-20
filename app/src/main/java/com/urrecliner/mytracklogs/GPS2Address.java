@@ -60,6 +60,13 @@ public class GPS2Address {
             if (!SubLocality.equals(noInfo)) addressMerged += " " + SubLocality;
             if (!Thorough.equals(noInfo)) addressMerged += " " + Thorough;
             if (!Feature.equals(noInfo)) addressMerged += " " + Feature;
+            String [] addr = addressMerged.split(" ");
+            if (addr.length > 5)
+                addressMerged = addr[2]+" "+addr[3]+" "+addr[4];
+            else if (addr.length > 4)
+                addressMerged = addr[2]+" "+addr[3];
+            else if (addr.length > 3)
+                addressMerged = addr[2];
         }
         else {
             if (!Feature.equals(noInfo)) addressMerged += " " + Feature;
@@ -69,11 +76,16 @@ public class GPS2Address {
             if (!SState.equals(noInfo)) addressMerged += " " + SState;
             if (!State.equals(noInfo)) addressMerged += " " + State;
             if (!Country.equals(noInfo)) addressMerged += " " + Country;
+            String [] addr = addressMerged.split(" ");
+            if (addr.length> 4)
+                addressMerged = addr[addr.length-1]+" "+addr[addr.length-2]+" "+addr[addr.length-3];
+            else if (addr.length> 3)
+                addressMerged = addr[addr.length-1]+" "+addr[addr.length-2];
+            else if (addr.length> 2)
+                addressMerged = addr[addr.length-1];
+//            if (addr.length > 4)
+//                addressMerged += " "+addr[addr.length-4];
         }
-        String [] addr = addressMerged.split(" ");
-        addressMerged = addr[0]+" "+addr[1]+" "+addr[2];
-        if (addr.length > 3)
-            addressMerged += " "+addr[3];
         return addressMerged;
     }
 }

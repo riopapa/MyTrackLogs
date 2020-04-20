@@ -352,11 +352,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         showMarker.init(mainActivity, googleMap);
         nowLatitude = gpsTracker.getGpsLatitude();
         nowLongitude = gpsTracker.getGpsLongitude();
-        showMarker.drawHere(nowLatitude, nowLongitude);
+//        showMarker.drawHere(nowLatitude, nowLongitude);
         utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude+" with scale:"+mapScale);
-        locSouth = startLatitude-mapDiff; locNorth = startLatitude+mapDiff;
-        locWest = startLongitude-mapDiff; locEast = startLongitude+mapDiff;
-        utils.log(logID," initial distance :"+mapUtils.getFullMapDistance());
         calcMapScale();
         mapScale = 18;
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
@@ -408,8 +405,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //            utils.log(logID+latitudeQues.size(), "Drawing "+latitudeQues.get(0)+" x "+longitudeQues.get(0));
             markerLatLng.set(0, new LatLng(latitudeQues.get(0), longitudeQues.get(0)));
             markerLatLng.set(1, new LatLng(latitudeQues.get(1), longitudeQues.get(1)));
-            showMarker.drawLine(markerLatLng);
-            showMarker.drawHere(latitudeQues.get(1), longitudeQues.get(1));
+            showMarker.drawLine(markerLatLng, isWalk);
+//            showMarker.drawHere(latitudeQues.get(1), longitudeQues.get(1));
+//            showMarker.drawFoot(markerLatLng);
             latitudeQues.remove(0); longitudeQues.remove(0);
         }
     }

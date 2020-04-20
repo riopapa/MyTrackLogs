@@ -3,6 +3,7 @@ package com.urrecliner.mytracklogs;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,23 +22,44 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class TrackActivity extends AppCompatActivity {
 
     final String logID = "track";
+    Cursor cursor;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tracks);
+        Log.w("track"," start //");
+    }
 
-        RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.track_recycler);
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        RecyclerView mRecyclerView = findViewById(R.id.track_recycler);
         LinearLayoutManager mLinearLayoutManager = new LinearLayoutManager(this);
-        mRecyclerView.setLayoutManager(mLinearLayoutManager);
 
+        mRecyclerView.setLayoutManager(mLinearLayoutManager);
         trackActivity = this;
         trackLogs = new ArrayList<>();
 
-        Cursor cursor = databaseIO.trackFromTo();
-        if (cursor == null) {
-            utils.log(logID, "retry to read db");
+        try {
+            cursor = databaseIO.trackFromTo();
+        } catch (Exception e) {
+            if (cursor == null) {
+                Log.w("track"," cursor //");
+                databaseIO = new DatabaseIO();
+//                utils.log(logID, "retry to read db");
+            }
             cursor = databaseIO.trackFromTo();
         }
+        trackAdapter = new TrackAdapter();
+        mRecyclerView.setAdapter(trackAdapter);
+
+        ActionBar ab = this.getSupportActionBar();
+        ab.setTitle(R.string.track_list);
+        ab.setIcon(R.mipmap.my_face) ;
+        ab.setDisplayUseLogoEnabled(true) ;
+        ab.setDisplayShowHomeEnabled(true) ;
+
         if (cursor != null) {
             utils.log("cursor","count ="+cursor.getCount());
             // move cursor to first row
@@ -52,14 +74,7 @@ public class TrackActivity extends AppCompatActivity {
                     trackLogs.add(new TrackLog(startTime, finishTime, meters, minutes, bitmap, placeName));
                 } while (cursor.moveToNext());
             }
+            cursor.close();
         }
-        trackAdapter = new TrackAdapter();
-        mRecyclerView.setAdapter(trackAdapter);
-        ActionBar ab = this.getSupportActionBar();
-        ab.setTitle(R.string.track_list);
-        ab.setIcon(R.mipmap.my_face) ;
-        ab.setDisplayUseLogoEnabled(true) ;
-        ab.setDisplayShowHomeEnabled(true) ;
     }
-
 }

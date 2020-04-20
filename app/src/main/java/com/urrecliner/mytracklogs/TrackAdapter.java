@@ -107,7 +107,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         viewHolder.tvMeterMinutes.setText(s);
         int grayed = 240 * position / (trackLogs.size()+1);
         int backColor = ContextCompat.getColor(trackActivity,R.color.logBackground)
-                - grayed - grayed <<8 - grayed <<16;
+                - grayed - grayed *256 - grayed *256*256;
         viewHolder.viewLine.setBackgroundColor(backColor);
         backColor ^= 0xAAAAAA;
         viewHolder.tvStartFinish.setTextColor(backColor);

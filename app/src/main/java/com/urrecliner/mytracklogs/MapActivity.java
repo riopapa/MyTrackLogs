@@ -211,7 +211,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 } while (cursor.moveToNext());
                 locLogs.add(new LocLog(locLogs.get(locLogs.size()-1).logTime, nowLatitude, nowLongitude));
             }
-            if (cursor.getCount() < 10) {
+            if (cursor.getCount() < 4) {
                 Toast.makeText(mapActivity,"자료가 너무 작음("+cursor.getCount()+"), 삭제 요망",Toast.LENGTH_LONG).show();
                 return true;
             }

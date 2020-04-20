@@ -20,8 +20,8 @@ class MapUtils {
     static double locSouth, locNorth, locWest, locEast;
 
     double getFullMapDistance() {
-        utils.log("left top", locWest+", "+locNorth);
-        utils.log("right btm", locEast+", "+locSouth);
+//        utils.log("left top", locWest+", "+locNorth);
+//        utils.log("right btm", locEast+", "+locSouth);
         locationPrev.setLatitude(locWest);
         locationPrev.setLongitude(locNorth);
         locationNow.setLatitude(locEast);
@@ -47,7 +47,6 @@ class MapUtils {
         }
         return (mapScale < 2) ? 18 : (19-mapScale);
     }
-
 
     Bitmap StringToBitMap(String encodedString){
         byte [] encodeByte= Base64.decode(encodedString,Base64.DEFAULT);

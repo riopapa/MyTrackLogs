@@ -12,8 +12,8 @@
 
     <ImageView
         android:id="@+id/trackMap"
-        android:layout_width="40dp"
-        android:layout_height="90dp"
+        android:layout_width="60dp"
+        android:layout_height="80dp"
         android:layout_margin="4dp"
         android:layout_weight="1"
         android:layout_gravity="center"
@@ -62,7 +62,7 @@
                 android:layout_width="match_parent"
                 android:layout_gravity="center"
                 android:gravity="center"
-                android:layout_height="30dp"
+                android:layout_height="match_parent"
                 android:text="경기도 성남시분당구 ~ 서울특별시 구로구구로동"
                 android:textStyle="bold"
                 android:textSize="16sp" />

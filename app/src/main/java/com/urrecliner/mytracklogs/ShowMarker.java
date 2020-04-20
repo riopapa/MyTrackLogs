@@ -1,6 +1,7 @@
 package com.urrecliner.mytracklogs;
 
 import android.app.Activity;
+import android.graphics.Point;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -10,9 +11,12 @@ import com.google.android.gms.maps.model.CustomCap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.List;
 
 class ShowMarker {
 
@@ -78,40 +82,56 @@ class ShowMarker {
             }
         });
     }
-
-    void drawHere (final double latitude, final double longitude) {
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                if (markerHere != null)
-                    markerHere.remove();
-                showActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        markerHere = thisMap.addMarker(new MarkerOptions()
-                                .zIndex(10000f)
-                                .position(new LatLng(latitude, longitude))
-                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.my_face)));
-                    }
-                });
-            }
-        });
-    }
+//
+//    void drawHere (final double latitude, final double longitude) {
+//        new Handler(Looper.getMainLooper()).post(new Runnable() {
+//            @Override
+//            public void run() {
+//                if (markerHere != null)
+//                    markerHere.remove();
+//                showActivity.runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        markerHere = thisMap.addMarker(new MarkerOptions()
+//                                .zIndex(10000f)
+//                                .position(new LatLng(latitude, longitude))
+//                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.my_face)));
+//                    }
+//                });
+//            }
+//        });
+//    }
 
     void drawHereOff() {
         if (markerHere != null)
             markerHere.remove();
     }
 
-    void drawLine(final ArrayList<LatLng> listLatLng) {
+    private Polyline polyline = null;
+    void drawLine(final ArrayList<LatLng> listLatLng, final boolean isWalk) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
                 showActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        polyOptions.addAll(listLatLng);
-                        thisMap.addPolyline(polyOptions);
+                        if (polyline != null) {
+                            polyline.remove();
+                        }
+                        endCap = new CustomCap(
+                                (isWalk)? BitmapDescriptorFactory.fromResource(R.mipmap.foot_mini):
+                                        BitmapDescriptorFactory.fromResource(R.mipmap.drive_mini), 10);
+                        polyOptions = new PolylineOptions();
+                        polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
+                        polyOptions.color(showActivity.getColor(R.color.trackRoute));
+                        polyOptions.endCap(endCap);
+                        showActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                polyOptions.addAll(listLatLng);
+                                polyline =thisMap.addPolyline(polyOptions);
+                            }
+                        });
                     }
                 });
             }
