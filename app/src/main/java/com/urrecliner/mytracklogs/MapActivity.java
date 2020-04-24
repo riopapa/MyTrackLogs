@@ -4,7 +4,12 @@ import android.app.Activity;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.LightingColorFilter;
+import android.graphics.Paint;
 import android.location.Geocoder;
 import android.os.Bundle;
 import android.view.View;
@@ -18,6 +23,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CustomCap;
 import com.google.android.gms.maps.model.Dash;
 import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.LatLng;
@@ -31,10 +38,6 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static com.urrecliner.mytracklogs.MapUtils.locEast;
-import static com.urrecliner.mytracklogs.MapUtils.locNorth;
-import static com.urrecliner.mytracklogs.MapUtils.locSouth;
-import static com.urrecliner.mytracklogs.MapUtils.locWest;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
 import static com.urrecliner.mytracklogs.Vars.mContext;
@@ -52,7 +55,7 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private final String logID = "Map";
-    private static final int POLYLINE_STROKE_WIDTH_PX = 24;
+    private static final int POLYLINE_STROKE_WIDTH_PX = 20;
     private static final int PATTERN_DASH_LENGTH_PX = 6;
     private static final int PATTERN_GAP_LENGTH_PX = 6;
 //    private static final PatternItem DOT = new Dot();
@@ -61,6 +64,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private String startAddress;
     private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
     GoogleMap thisMap;
+    double locSouth, locNorth, locWest, locEast;
     private Activity mapActivity;
     private long startTime, finishTime, timeBegin;
     private float timeDiff;
@@ -130,7 +134,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (!startAddress.equals(finishAddress))
             startAddress += "~"+finishAddress;
 
-        double fullMapDistance = mapUtils.getFullMapDistance();
+        double fullMapDistance = mapUtils.getFullMapDistance(locEast, locWest, locSouth, locNorth);
         int mapScale = mapUtils.getMapScale(fullMapDistance);
 
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
@@ -166,19 +170,26 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         lineFromToLatLng = new ArrayList<>();
         lineFromToLatLng.add(new LatLng(0,0));
         lineFromToLatLng.add(new LatLng(0,0));
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.triangle);
         AnimatedColor animatedColor = new AnimatedColor(Color.MAGENTA, Color.CYAN);
-        int color = 0;
+        int color, width;
         for (int i = 0; i < locLogs.size()-2; i++) {
             lineFromToLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
             lineFromToLatLng.set(1, new LatLng(locLogs.get(i+1).latitude, locLogs.get(i+1).longitude));
             float ratio = (float) (locLogs.get(i).logTime-timeBegin) / timeDiff;
             color = animatedColor.with(ratio);
+            Bitmap colorBitmap = changeBitmapColor(bitmap, color);
+            width = POLYLINE_STROKE_WIDTH_PX;
             if (i % 3 == 0)
                 color = color ^ 0x03333333;
-            else if (i % 2 == 0)
-                color = 0xFF0F0F0F;
+//            else if (i % 4 == 0) {
+//                color = 0xFF0F0F0F;
+//                width = width * 2 / 3;
+//            }
             PolylineOptions polyOptions = new PolylineOptions();
-            polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
+            polyOptions.width(width);
+            CustomCap endCap = new CustomCap(BitmapDescriptorFactory.fromBitmap(colorBitmap), 20);
+            polyOptions.endCap(endCap);
             polyOptions.addAll(lineFromToLatLng);
             polyOptions.color(color);
             googleMap.addPolyline(polyOptions);
@@ -187,7 +198,19 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         showMarker.drawStart(locLogs.get(0).latitude, locLogs.get(0).longitude, true);
         showMarker.drawFinish(locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude, true);
     }
+    private Bitmap changeBitmapColor(Bitmap sourceBitmap, int color) {
 
+        Bitmap resultBitmap = Bitmap.createBitmap(sourceBitmap, 0, 0,
+                sourceBitmap.getWidth() - 1, sourceBitmap.getHeight() - 1);
+        Paint p = new Paint();
+        ColorFilter filter = new LightingColorFilter(color, color);
+        p.setColorFilter(filter);
+//        image.setImageBitmap(resultBitmap);
+
+        Canvas canvas = new Canvas(resultBitmap);
+        canvas.drawBitmap(resultBitmap, 0, 0, p);
+        return resultBitmap;
+    }
     private boolean retrieveDBLog() {
 
         utils.log(logID,"start of retrieve");

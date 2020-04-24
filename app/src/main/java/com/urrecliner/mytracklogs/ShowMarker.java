@@ -25,7 +25,7 @@ class ShowMarker {
     private Activity showActivity;
     private CustomCap endCap;
     private PolylineOptions polyOptions;
-    private static final int POLYLINE_STROKE_WIDTH_PX = 16;
+    private static final int POLYLINE_STROKE_WIDTH_PX = 14;
 
     void init(Activity activity, GoogleMap map) {
         showActivity = activity;
@@ -108,7 +108,8 @@ class ShowMarker {
     }
 
     private Polyline polyline = null;
-    void drawLine(final ArrayList<LatLng> listLatLng, final boolean isWalk) {
+    private ArrayList<LatLng> prevLatLng = null;
+    void drawLine(final ArrayList<LatLng> nowLatLng, final boolean isWalk) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -117,21 +118,25 @@ class ShowMarker {
                     public void run() {
                         if (polyline != null) {
                             polyline.remove();
+                            polyOptions = new PolylineOptions();
+                            polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
+                            polyOptions.color(showActivity.getColor(R.color.trackRoute));
+                            endCap = new CustomCap(BitmapDescriptorFactory.fromResource(R.mipmap.triangle), 16);
+                            polyOptions.endCap(endCap);
+                            polyOptions.addAll(prevLatLng);
+                            thisMap.addPolyline(polyOptions);
                         }
                         endCap = new CustomCap(
-                                (isWalk)? BitmapDescriptorFactory.fromResource(R.mipmap.foot_mini):
-                                        BitmapDescriptorFactory.fromResource(R.mipmap.drive_mini), 10);
+                                (isWalk) ? BitmapDescriptorFactory.fromResource(R.mipmap.foot_mini) :
+                                        BitmapDescriptorFactory.fromResource(R.mipmap.drive_mini), 6);
                         polyOptions = new PolylineOptions();
                         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
                         polyOptions.color(showActivity.getColor(R.color.trackRoute));
                         polyOptions.endCap(endCap);
-                        showActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                polyOptions.addAll(listLatLng);
-                                polyline =thisMap.addPolyline(polyOptions);
-                            }
-                        });
+                        polyOptions.addAll(nowLatLng);
+                        polyline = thisMap.addPolyline(polyOptions);
+                        prevLatLng = new ArrayList<>();
+                        prevLatLng.addAll(nowLatLng);
                     }
                 });
             }

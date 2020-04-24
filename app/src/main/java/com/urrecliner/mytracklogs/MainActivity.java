@@ -86,12 +86,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     double meters = 0;
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
-    double totSpeed = 0;
+    double totSpeed = 0, totDistance = 0;
     final double mapDiff = 0.01f;
 
     ArrayList<LatLng> latLngPos;
     ArrayList<Double> latitudeSaves, longitudeSaves, latitudeQues, longitudeQues;
-    final int QUE_COUNT = 4;
+    final int QUE_COUNT = 7;
 
     @SuppressLint("RestrictedApi")
     @Override
@@ -225,7 +225,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void finish_tracking() {
         modeStarted = false;
         modePaused = false;
-        utils.log(logID,"// Finish// values average speed:"+(totSpeed)/dbCount+" Max dist="+dMax+", Min dist="+dMin+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
+        utils.log(logID,"// values // avrDist="+(totDistance)/dbCount+", avr speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
+        utils.log("minMax", "dMax="+dMax+" dMin="+dMin+" sMax="+sMax+" sMin="+sMin);
         endTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_start);
         fabPauseRestart.setAlpha(0.2f);
@@ -247,6 +248,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         meters = 0;
         minutes = 0;
         totSpeed = 0;
+        totDistance = 0;
         tvStartDate.setText(utils.long2DateDay(startTime));
         tvStartTime.setText(utils.long2Time(startTime));
         tvMinutes.setText(R.string.zero_minutes);
@@ -273,7 +275,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         gpsTracker.stopGPSUpdate();
         calcMapScale();
         utils.log(logID,"Final map scale is "+mapScale);
-        mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS), mapScale));
+        mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS),
+                (float) mapScale - 0.1f));
         elapsedTime = minutes + finishTime - beginTime;
         databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) elapsedTime / 60000);
 //        utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));/
@@ -283,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateNotification(ACTION_STOP);
     }
 
-    double dMax = 999999999999999f, dMin = -999999999999999f;
+    double dMax = -999999999999f, dMin = 999999999999f, sMax = -99, sMin = 9999999999f;
     void responseGPSLocation() {
 
         nowLatitude = latitudeGPS; nowLongitude = longitudeGPS;
@@ -293,9 +296,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         double distance = mapUtils.getShortDistance();
         double speed = distance / (double)deltaTime * 1000f * 60f;
-        utils.log("Source", "distance "+distance+" speed " + speed+" time "+deltaTime);
         dMax = Math.max(dMax,distance); dMin = Math.min(dMin, distance);
-        if (isWalk && (speed>50f || speed < 0.001f)) {
+        sMax = Math.max(sMax,speed); sMin = Math.min(sMin, speed);
+//        if (dMax == distance)
+//            utils.log("max", "// dmax Now "+distance+" speed " + speed+" time "+deltaTime);
+//        if (dMin == distance)
+//            utils.log("min", "// Now dmin "+distance+" speed " + speed+" time "+deltaTime);
+//        if (sMin == speed)
+//            utils.log("min", "// Now "+distance+" Min speed " + speed+" time "+deltaTime);
+//        if (sMax == speed)
+//            utils.log("max", "// Now "+distance+" speed Max " + speed+" time "+deltaTime);
+        if (isWalk && (speed>1000f || speed < 100f)) {
             utils.log("Walk", "BAD " + " XSpeed " + speed+" XTime "+deltaTime);
             return;
         }
@@ -303,11 +314,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         String s = utils.minute2Text((int) elapsedTime / 60000);
         tvMinutes.setText(s);
         totSpeed += speed;
-        utils.log(logID, "latitudeSave size="+latitudeSaves.size());
-        latitudeSaves.remove(0); longitudeSaves.remove(0);
+        totDistance += distance;
         latitudeSaves.add(nowLatitude); longitudeSaves.add(nowLongitude);
         adjustPosition();
         nowLatitude = latitudeSaves.get(0); nowLongitude = longitudeSaves.get(0);
+        latitudeSaves.remove(0); longitudeSaves.remove(0);
         if (nowLatitude > locNorth) locNorth = nowLatitude;
         if (nowLatitude < locSouth) locSouth = nowLatitude;
         if (nowLongitude > locEast) locEast = nowLongitude;
@@ -332,14 +343,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void adjustPosition() {
-        latitudeSaves.set(1, ((latitudeSaves.get(0)+ latitudeSaves.get(2))/2+ latitudeSaves.get(1))/2);
-        latitudeSaves.set(2, ((latitudeSaves.get(1)+ latitudeSaves.get(3))/2+ latitudeSaves.get(2))/2);
-        longitudeSaves.set(1, ((longitudeSaves.get(0)+ longitudeSaves.get(2))/2+ longitudeSaves.get(1))/2);
-        longitudeSaves.set(2, ((longitudeSaves.get(1)+ longitudeSaves.get(3))/2+ longitudeSaves.get(2))/2);
+        for (int i = 0; i < QUE_COUNT-2; i++) {
+            latitudeSaves.set(i+1,((latitudeSaves.get(i)+latitudeSaves.get(i+2))/2+latitudeSaves.get(i+1))/2);
+            longitudeSaves.set(i+1,((longitudeSaves.get(i)+longitudeSaves.get(i+2))/2+longitudeSaves.get(i+1))/2);
+        }
     }
 
     void calcMapScale() {
-        double fullMapDistance = mapUtils.getFullMapDistance();
+        double fullMapDistance = mapUtils.getFullMapDistance(locEast, locWest, locSouth, locNorth);
         utils.log(logID," initial distance :"+fullMapDistance);
         mapScale = mapUtils.getMapScale(fullMapDistance);
         utils.log(logID, "mapScale >> "+mapScale);

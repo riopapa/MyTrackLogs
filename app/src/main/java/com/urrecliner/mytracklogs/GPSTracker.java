@@ -98,7 +98,7 @@ class GPSTracker extends Service implements LocationListener {
     @Override
     public void onLocationChanged(Location location) {
         this.location = location;
-        utils.log("NEW LOCATION ", location.getLatitude()+" x "+location.getLongitude());
+//        utils.log("NEW LOCATION ", location.getLatitude()+" x "+location.getLongitude());
         inform2Main();
     }
 
@@ -108,7 +108,6 @@ class GPSTracker extends Service implements LocationListener {
         gpsLongitude = location.getLongitude();
         gpsUpdateTime = System.currentTimeMillis();
         long nowTime = System.currentTimeMillis();
-        utils.log("Tracker loc", gpsLatitude+" x "+gpsLongitude+" timeGap="+(nowTime-prevTime));
         prevTime = nowTime;
         MainActivity.locationUpdated(gpsLatitude, gpsLongitude);
     }

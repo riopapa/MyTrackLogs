@@ -17,11 +17,8 @@ class MapUtils {
 
     private Location locationPrev = new Location("");
     private Location locationNow = new Location("");
-    static double locSouth, locNorth, locWest, locEast;
 
-    double getFullMapDistance() {
-//        utils.log("left top", locWest+", "+locNorth);
-//        utils.log("right btm", locEast+", "+locSouth);
+    double getFullMapDistance(double locEast, double locWest, double locSouth, double locNorth) {
         locationPrev.setLatitude(locWest);
         locationPrev.setLongitude(locNorth);
         locationNow.setLatitude(locEast);
