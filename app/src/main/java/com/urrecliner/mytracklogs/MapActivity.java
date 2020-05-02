@@ -59,11 +59,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private static final int PATTERN_DASH_LENGTH_PX = 6;
     private static final int PATTERN_GAP_LENGTH_PX = 6;
 //    private static final PatternItem DOT = new Dot();
-    private static final PatternItem DASH = new Dash(PATTERN_DASH_LENGTH_PX);
-    private static final PatternItem GAP = new Gap(PATTERN_GAP_LENGTH_PX);
-    private String startAddress;
-    private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
+//    private static final PatternItem DASH = new Dash(PATTERN_DASH_LENGTH_PX);
+//    private static final PatternItem GAP = new Gap(PATTERN_GAP_LENGTH_PX);
+//    private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
     GoogleMap thisMap;
+    private String startAddress;
     double locSouth, locNorth, locWest, locEast;
     private Activity mapActivity;
     private long startTime, finishTime, timeBegin;
@@ -93,9 +93,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mapActivity = this;
         int orientation = this.getResources().getConfiguration().orientation;
         if (orientation == Configuration.ORIENTATION_PORTRAIT) {
-            iconWidth = 200; iconHeight = 360;
+            iconWidth = 200; iconHeight = 300;
         } else {
-            iconWidth = 360; iconHeight = 200;
+            iconWidth = 300; iconHeight = 200;
         }
         TrackLog trackLog = getIntent().getParcelableExtra("trackLog");
         startTime = trackLog.getStartTime();
@@ -128,7 +128,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         showMarker.init(mapActivity, googleMap);
         String s;
         if (retrieveDBLog()) return;
-        Geocoder geocoder = new Geocoder(this, Locale.KOREA);
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         startAddress = GPS2Address.get(geocoder, locLogs.get(0).latitude, locLogs.get(0).longitude);
         String finishAddress = GPS2Address.get(geocoder, locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude);
         if (!startAddress.equals(finishAddress))
@@ -149,6 +149,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         else
             tvLogInfo.setVisibility(View.INVISIBLE);
+        googleMap.getUiSettings().setCompassEnabled(true);
         tvPlace.setText(startAddress);
         View v = findViewById(R.id.fragMap);
         v.post(new Runnable() {
@@ -158,12 +159,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     public void run() {
                         thisMap.snapshot(mapSaveShot);
                     }
-                }, 100);
+                }, 600);
             }
         });
 //        googleMap.setMyLocationEnabled(true);
 //        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
-        googleMap.getUiSettings().setCompassEnabled(true);
     }
 
     private void drawTrackLIne(GoogleMap googleMap) {
@@ -260,7 +260,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     public void run() {
                         thisMap.snapshot(buildMapIcon);
                     }
-                }, 500);
+                }, 600);
             }
             else {
                 ImageView iv = findViewById(R.id.smallMap);
@@ -293,9 +293,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         int[] pixelsR = new int[width * height];
         bitMap.getPixels(pixelsB, 0, width, 0, 0, width, height);
         routeMap.getPixels(pixelsR, 0, width, 0, 0, width, height);
-        for(int x = 0; x < pixelsR.length; ++x) {
+        for (int x = 0; x < pixelsR.length; ++x) {
             if (pixelsB[x] == pixelsR[x])
-                pixelsR[x] = pixelsR[x] & 0x0F0F0F0F;       // grey out
+                pixelsR[x] = pixelsR[x] & 0xAAFFFFFF; // 0xFFCCDDCC;       // grey out
         }
         Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         result.setPixels(pixelsR, 0, width, 0, 0, width, height);

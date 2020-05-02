@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -87,13 +88,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
     double totSpeed = 0, totDistance = 0;
-    final double mapDiff = 0.01f;
 
     ArrayList<LatLng> latLngPos;
-    ArrayList<Double> latitudeSaves, longitudeSaves, latitudeQues, longitudeQues;
-    final int QUE_COUNT = 7;
+    ArrayList<Double> latSVs, lonSVs, latQues, lonQues;
+    final int QUE_COUNT = 5;
 
-    @SuppressLint("RestrictedApi")
+//    @SuppressLint("RestrictedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         mContext = this;
@@ -106,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         askPermission();
 
-        utils.log(logID,"Started");
+        utils.log(logID,"//- Started -//");
 
         markerLatLng = new ArrayList<>(); markerLatLng.add(new LatLng(0,0)); markerLatLng.add(new LatLng(0,0));
         tvStartDate = findViewById(R.id.startDate);
@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         ab.setIcon(R.mipmap.my_face) ;
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;
-        updateMarker = new Handler() {public void handleMessage(Message msg) { responseGPSLocation(); }};
+        updateMarker = new Handler() {public void handleMessage(Message msg) { locationChanged(true); }};
         notifyAction = new Handler() {public void handleMessage(Message msg) { notificationClicked(msg.what); }};
 
         new Timer().schedule(new TimerTask() {
@@ -174,11 +174,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
         updateNotification(ACTION_INIT);
         dummyMap = mapUtils.StringToBitMap(mapUtils.BitMapToString(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)));
-        latLngPos = new ArrayList<>(); latitudeSaves = new ArrayList<>(); longitudeSaves = new ArrayList<>();
-        latitudeQues = new ArrayList<>(); longitudeQues = new ArrayList<>();
+        latLngPos = new ArrayList<>(); latSVs = new ArrayList<>(); lonSVs = new ArrayList<>();
+        latQues = new ArrayList<>(); lonQues = new ArrayList<>();
         startLatitude = gpsTracker.getGpsLatitude();
         startLongitude = gpsTracker.getGpsLongitude();
-        for (int i = 0; i < QUE_COUNT; i++) { latitudeSaves.add(startLatitude); longitudeSaves.add(startLongitude); }
+        for (int i = 0; i < QUE_COUNT; i++) { latSVs.add(startLatitude); lonSVs.add(startLongitude); }
         gpsTracker.stopGPSUpdate();
     }
 
@@ -226,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         modeStarted = false;
         modePaused = false;
         utils.log(logID,"// values // avrDist="+(totDistance)/dbCount+", avr speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
-        utils.log("minMax", "dMax="+dMax+" dMin="+dMin+" sMax="+sMax+" sMin="+sMin);
+        utils.log("minMax", " sMax="+sMax+" sMin="+sMin);
         endTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_start);
         fabPauseRestart.setAlpha(0.2f);
@@ -242,13 +242,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         prevLogTime = startTime;
         latLngPos.add(new LatLng(startLatitude, startLongitude));
         utils.log(logID, "startLog " + startLatitude + " x " + startLongitude);
-        latitudeQues.add(startLatitude); longitudeQues.add(startLongitude);
-        finishTime = 0;
+        latQues.add(startLatitude); lonQues.add(startLongitude);
         dbCount = 0;
-        meters = 0;
-        minutes = 0;
-        totSpeed = 0;
-        totDistance = 0;
+        meters = 0; minutes = 0;
+        totSpeed = 0; totDistance = 0;
         tvStartDate.setText(utils.long2DateDay(startTime));
         tvStartTime.setText(utils.long2Time(startTime));
         tvMinutes.setText(R.string.zero_minutes);
@@ -262,7 +259,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             markLines = null;
         }
         showMarker.drawStart(startLatitude, startLongitude, false);
-
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
         databaseIO.trackInsert(startTime);
         locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
@@ -270,13 +266,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void endTrackLog() {
         finishTime = System.currentTimeMillis();
-        latitudeGPS = gpsTracker.getGpsLatitude(); longitudeGPS = gpsTracker.getGpsLongitude();
-        responseGPSLocation(); responseGPSLocation(); responseGPSLocation();
         gpsTracker.stopGPSUpdate();
+        latitudeGPS = gpsTracker.getGpsLatitude(); longitudeGPS = gpsTracker.getGpsLongitude();
+        for (int i = 0; i < QUE_COUNT-1; i++) {
+            locationChanged(false);
+            SystemClock.sleep(150);
+        }
         calcMapScale();
-        utils.log(logID,"Final map scale is "+mapScale);
-        mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitudeGPS, longitudeGPS),
-                (float) mapScale - 0.1f));
+//        utils.log(logID,"Final map scale is "+mapScale);
+        mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
+                (float) mapScale - 0.15f));
         elapsedTime = minutes + finishTime - beginTime;
         databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) elapsedTime / 60000);
 //        utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));/
@@ -286,45 +285,44 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateNotification(ACTION_STOP);
     }
 
-    double dMax = -999999999999f, dMin = 999999999999f, sMax = -99, sMin = 9999999999f;
-    void responseGPSLocation() {
+    double sMax = -9999f, sMin = 99999f;
+    int resetCount = 0;
+    void locationChanged(boolean isRunning) {
 
         nowLatitude = latitudeGPS; nowLongitude = longitudeGPS;
         long nowTime = System.currentTimeMillis();
         long deltaTime = nowTime - prevLogTime;
-        if (deltaTime < 200)
+        if (isRunning && deltaTime < 300)
             return;
         double distance = mapUtils.getShortDistance();
         double speed = distance / (double)deltaTime * 1000f * 60f;
-        dMax = Math.max(dMax,distance); dMin = Math.min(dMin, distance);
         sMax = Math.max(sMax,speed); sMin = Math.min(sMin, speed);
-//        if (dMax == distance)
-//            utils.log("max", "// dmax Now "+distance+" speed " + speed+" time "+deltaTime);
-//        if (dMin == distance)
-//            utils.log("min", "// Now dmin "+distance+" speed " + speed+" time "+deltaTime);
-//        if (sMin == speed)
-//            utils.log("min", "// Now "+distance+" Min speed " + speed+" time "+deltaTime);
-//        if (sMax == speed)
-//            utils.log("max", "// Now "+distance+" speed Max " + speed+" time "+deltaTime);
-        if (isWalk && (speed>1000f || speed < 100f)) {
-            utils.log("Walk", "BAD " + " XSpeed " + speed+" XTime "+deltaTime);
-            return;
+        if (resetCount++ < 10 && isRunning) {
+            if (isWalk && (speed>2500f || speed < 100f)) {
+                utils.log("Walk", "BAD Walk "+resetCount+ " Speed " + speed+" XTime "+deltaTime);
+                return;
+            }
+            if (!isWalk && (speed>100000f || speed < 300f)) {
+                utils.log("Drive", "BAD Drive " +resetCount+ " Speed " + speed+" XTime "+deltaTime);
+                return;
+            }
         }
+        resetCount = 0;
         elapsedTime = minutes + nowTime - beginTime;
         String s = utils.minute2Text((int) elapsedTime / 60000);
         tvMinutes.setText(s);
         totSpeed += speed;
         totDistance += distance;
-        latitudeSaves.add(nowLatitude); longitudeSaves.add(nowLongitude);
+        latSVs.add(nowLatitude); lonSVs.add(nowLongitude);
         adjustPosition();
-        nowLatitude = latitudeSaves.get(0); nowLongitude = longitudeSaves.get(0);
-        latitudeSaves.remove(0); longitudeSaves.remove(0);
+        nowLatitude = latSVs.get(0); nowLongitude = lonSVs.get(0);
+        latSVs.remove(0); lonSVs.remove(0);
         if (nowLatitude > locNorth) locNorth = nowLatitude;
         if (nowLatitude < locSouth) locSouth = nowLatitude;
         if (nowLongitude > locEast) locEast = nowLongitude;
         if (nowLongitude < locWest) locWest = nowLongitude;
 
-        latitudeQues.add(nowLatitude); longitudeQues.add(nowLongitude);
+        latQues.add(nowLatitude); lonQues.add(nowLongitude);
         drawTrackLogs();
         distance = mapUtils.getShortDistance();
         meters += distance; // * 1.1f;
@@ -343,17 +341,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void adjustPosition() {
+        int k = QUE_COUNT-1;
+        latSVs.set(k,(latSVs.get(k)+ latSVs.get(k-1))/2);
+        lonSVs.set(k,(lonSVs.get(k)+ lonSVs.get(k-1))/2);
         for (int i = 0; i < QUE_COUNT-2; i++) {
-            latitudeSaves.set(i+1,((latitudeSaves.get(i)+latitudeSaves.get(i+2))/2+latitudeSaves.get(i+1))/2);
-            longitudeSaves.set(i+1,((longitudeSaves.get(i)+longitudeSaves.get(i+2))/2+longitudeSaves.get(i+1))/2);
+            latSVs.set(i+1,((latSVs.get(i)+ latSVs.get(i+2))/2+latSVs.get(i+1))/2);
+            lonSVs.set(i+1,((lonSVs.get(i)+ lonSVs.get(i+2))/2+lonSVs.get(i+1))/2);
         }
     }
 
     void calcMapScale() {
         double fullMapDistance = mapUtils.getFullMapDistance(locEast, locWest, locSouth, locNorth);
-        utils.log(logID," initial distance :"+fullMapDistance);
+//        utils.log(logID," initial distance :"+fullMapDistance);
         mapScale = mapUtils.getMapScale(fullMapDistance);
-        utils.log(logID, "mapScale >> "+mapScale);
+//        utils.log(logID, "mapScale >> "+mapScale);
     }
 
     @Override
@@ -363,9 +364,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         showMarker.init(mainActivity, googleMap);
         nowLatitude = gpsTracker.getGpsLatitude();
         nowLongitude = gpsTracker.getGpsLongitude();
-//        showMarker.drawHere(nowLatitude, nowLongitude);
         utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude+" with scale:"+mapScale);
-        calcMapScale();
         mapScale = 18;
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
         updateNotification(ACTION_HIDE_CONFIRM);
@@ -378,12 +377,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     static void notificationBarTouched(int buttonType) {
-        utils.log(logID, "touch Button "+buttonType);
         notifyAction.sendEmptyMessage(buttonType);
     }
 
     void notificationClicked(int operation) {
-//        utils.log(logID, "notificationClicked "+operation);
         switch (operation) {
             case NOTIFICATION_BAR_GO: // GO_STOP
                 go_Clicked();
@@ -411,15 +408,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void drawTrackLogs() {
-//        utils.log(logID, "draw size="+latitudeQues.size());
-        while (latitudeQues.size() > 2) {
-//            utils.log(logID+latitudeQues.size(), "Drawing "+latitudeQues.get(0)+" x "+longitudeQues.get(0));
-            markerLatLng.set(0, new LatLng(latitudeQues.get(0), longitudeQues.get(0)));
-            markerLatLng.set(1, new LatLng(latitudeQues.get(1), longitudeQues.get(1)));
+        while (latQues.size() > 2) {
+            markerLatLng.set(0, new LatLng(latQues.get(0), lonQues.get(0)));
+            markerLatLng.set(1, new LatLng(latQues.get(1), lonQues.get(1)));
             showMarker.drawLine(markerLatLng, isWalk);
-//            showMarker.drawHere(latitudeQues.get(1), longitudeQues.get(1));
-//            showMarker.drawFoot(markerLatLng);
-            latitudeQues.remove(0); longitudeQues.remove(0);
+            latQues.remove(0); lonQues.remove(0);
         }
     }
     @Override

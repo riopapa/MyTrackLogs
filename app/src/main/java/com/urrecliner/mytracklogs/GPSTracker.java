@@ -32,7 +32,7 @@ class GPSTracker extends Service implements LocationListener {
     Location location = null; // Location
     double gpsLatitude, gpsLongitude;
     final String logID = "GPS";
-    private static final float MIN_DISTANCE_WALK = 5; // meters
+    private static final float MIN_DISTANCE_WALK = 10; // meters
     private static final long MIN_TIME_WALK_UPDATES = 10000; // miliSecs
     protected LocationManager locationManager;
 
@@ -41,42 +41,37 @@ class GPSTracker extends Service implements LocationListener {
         try {
             locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
             isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-            isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
-            if (!isGPSEnabled && !isNetworkEnabled) {
-                // No network provider is enabled
-            } else {
-                if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-                if (isGPSEnabled) {
-                    assert locationManager != null;
-                    locationManager.requestLocationUpdates(
-                            LocationManager.GPS_PROVIDER,
-                            MIN_TIME_WALK_UPDATES,
-                            MIN_DISTANCE_WALK, this);
-                    if (locationManager != null) {
-                        location = locationManager
-                                .getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        if (location != null) {
-                            gpsLatitude = location.getLatitude();
-                            gpsLongitude = location.getLongitude();
-                        }
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED)
+                return;
+            if (isGPSEnabled) {
+                assert locationManager != null;
+                locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        MIN_TIME_WALK_UPDATES,
+                        MIN_DISTANCE_WALK, this);
+                if (locationManager != null) {
+                    location = locationManager
+                            .getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    if (location != null) {
+                        gpsLatitude = location.getLatitude();
+                        gpsLongitude = location.getLongitude();
                     }
                 }
-                if (isNetworkEnabled) {
-                    assert locationManager != null;
-                    locationManager.requestLocationUpdates(
-                            LocationManager.NETWORK_PROVIDER,
-                            MIN_TIME_WALK_UPDATES,
-                            MIN_DISTANCE_WALK, this);
-                    if (locationManager != null) {
-                        location = locationManager
-                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                        if (location != null) {
-                            gpsLatitude = location.getLatitude();
-                            gpsLongitude = location.getLongitude();
-                        }
+            }
+            if (isNetworkEnabled) {
+                assert locationManager != null;
+                locationManager.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER,
+                        MIN_TIME_WALK_UPDATES,
+                        MIN_DISTANCE_WALK, this);
+                if (locationManager != null) {
+                    location = locationManager
+                            .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                    if (location != null) {
+                        gpsLatitude = location.getLatitude();
+                        gpsLongitude = location.getLongitude();
                     }
                 }
             }
@@ -94,7 +89,6 @@ class GPSTracker extends Service implements LocationListener {
     double getGpsLatitude() { return gpsLatitude; }
     double getGpsLongitude() { return gpsLongitude; }
 
-    long prevTime;
     @Override
     public void onLocationChanged(Location location) {
         this.location = location;
@@ -107,8 +101,8 @@ class GPSTracker extends Service implements LocationListener {
         gpsLatitude = location.getLatitude();
         gpsLongitude = location.getLongitude();
         gpsUpdateTime = System.currentTimeMillis();
-        long nowTime = System.currentTimeMillis();
-        prevTime = nowTime;
+//        long nowTime = System.currentTimeMillis();
+//        prevTime = nowTime;
         MainActivity.locationUpdated(gpsLatitude, gpsLongitude);
     }
 

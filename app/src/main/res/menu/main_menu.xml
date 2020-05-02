@@ -3,13 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/setting"
-        android:orderInCategory="100"
-        android:icon="@mipmap/setting_256"
-        app:showAsAction="always"
-        android:title="show Map" />
-
-    <item
         android:id="@+id/time_search"
         android:orderInCategory="100"
         android:icon="@mipmap/search_time"

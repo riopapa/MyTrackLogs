@@ -8,7 +8,6 @@ import java.util.List;
 
 public class GPS2Address {
 
-
     final static String noInfo = "No_Info";
     static String get(Geocoder geocoder, double latitude, double longitude) {
 
@@ -83,8 +82,6 @@ public class GPS2Address {
                 addressMerged = addr[addr.length-1]+" "+addr[addr.length-2];
             else if (addr.length> 2)
                 addressMerged = addr[addr.length-1];
-//            if (addr.length > 4)
-//                addressMerged += " "+addr[addr.length-4];
         }
         return addressMerged;
     }

@@ -50,7 +50,7 @@ public class NotificationService extends Service {
     NotificationManager mNotificationManager;
     private RemoteViews mRemoteViews;
     private final String logID = "Notify";
-    private boolean yesNOShown = false, isStarted;
+    private boolean isStarted;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -99,7 +99,6 @@ public class NotificationService extends Service {
                 break;
             case NOTIFICATION_BAR_NO_CONTINUE:
                 MainActivity.notificationBarTouched(NOTIFICATION_BAR_HIDE_CONFIRM);
-                yesNOShown = false;
                 break;
             default:
                 utils.log(logID, "Invalid operation "+operation);
@@ -107,11 +106,8 @@ public class NotificationService extends Service {
 
         String action = intent.getStringExtra("action");
         if (action == null) {
-//            utils.log(logID, "action is NULL, nothing to do");
             return START_NOT_STICKY;
         }
-//        else
-//            utils.log(logID, "action "+action);
 
         createNotification();
         switch (action) {
@@ -158,11 +154,9 @@ public class NotificationService extends Service {
                 break;
             case ACTION_SHOW_CONFIRM:
                 mRemoteViews.setViewVisibility(R.id.nConfirm, View.VISIBLE);
-                yesNOShown = true;
                 break;
             case ACTION_HIDE_CONFIRM:
                 mRemoteViews.setViewVisibility(R.id.nConfirm, View.GONE);
-                yesNOShown = false;
                 break;
             case ACTION_EXIT:
                 mBuilder = null;
