@@ -105,6 +105,8 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         DecimalFormat decimalFormat = new DecimalFormat("##,###,###");
         s = decimalFormat.format(trackLog.getMeters())+"m\n"+utils.minute2Text(trackLog.getMinutes());
         viewHolder.tvMeterMinutes.setText(s);
+        viewHolder.tvPlaceName.setText(trackLog.getPlaceName());
+
         int grayed = 240 * position / (trackLogs.size()+1);
         int backColor = ContextCompat.getColor(trackActivity,R.color.logBackground)
                 - grayed - grayed *256 - grayed *256*256;
@@ -112,7 +114,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         backColor ^= 0xAAAAAA;
         viewHolder.tvStartFinish.setTextColor(backColor);
         viewHolder.tvMeterMinutes.setTextColor(backColor);
-        viewHolder.tvPlaceName.setText(trackLog.getPlaceName());
+        viewHolder.tvPlaceName.setTextColor(backColor);
         Bitmap bitmap = trackLog.getBitMap();
         if (bitmap.sameAs(dummyMap))
             viewHolder.ivBitmap.setImageResource(R.mipmap.my_track_log);

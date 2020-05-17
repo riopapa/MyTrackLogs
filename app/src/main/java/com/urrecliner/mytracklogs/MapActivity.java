@@ -50,6 +50,7 @@ import static com.urrecliner.mytracklogs.Vars.showMarker;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.utils;
+import static java.lang.Math.min;
 
 
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -63,7 +64,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //    private static final PatternItem GAP = new Gap(PATTERN_GAP_LENGTH_PX);
 //    private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
     GoogleMap thisMap;
-    private String startAddress;
+    private String startAddress, fromToAddress;
     double locSouth, locNorth, locWest, locEast;
     private Activity mapActivity;
     private long startTime, finishTime, timeBegin;
@@ -126,17 +127,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (showMarker == null)
             showMarker = new ShowMarker();
         showMarker.init(mapActivity, googleMap);
-        String s;
+        String s = "";
         if (retrieveDBLog()) return;
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         startAddress = GPS2Address.get(geocoder, locLogs.get(0).latitude, locLogs.get(0).longitude);
         String finishAddress = GPS2Address.get(geocoder, locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude);
-        if (!startAddress.equals(finishAddress))
-            startAddress += "~"+finishAddress;
-
+        fromToAddress = buildFromToAddress(startAddress, finishAddress);
         double fullMapDistance = mapUtils.getFullMapDistance(locEast, locWest, locSouth, locNorth);
         int mapScale = mapUtils.getMapScale(fullMapDistance);
-
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
                 (float) mapScale - 0.1f));
         s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~ "+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
@@ -150,7 +148,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         else
             tvLogInfo.setVisibility(View.INVISIBLE);
         googleMap.getUiSettings().setCompassEnabled(true);
-        tvPlace.setText(startAddress);
+        tvPlace.setText(fromToAddress);
         View v = findViewById(R.id.fragMap);
         v.post(new Runnable() {
             @Override
@@ -164,6 +162,31 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         });
 //        googleMap.setMyLocationEnabled(true);
 //        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
+    }
+
+    private String buildFromToAddress(String startAddress, String finishAddress) {
+        String s;
+        if (startAddress == null && finishAddress == null)
+            s = "위치 파악 안 됨";
+        else if (startAddress == null)
+            s = finishAddress;
+        else if (finishAddress == null)
+            s = startAddress;
+        else if (!startAddress.equals(finishAddress)) {
+            String [] fromA = startAddress.split(" ");
+            String [] toA = finishAddress.split(" ");
+            startAddress = ""; finishAddress = "";
+            for (int i = 0; i < Math.min(fromA.length, toA.length); i++) {
+                if (fromA[i].equals(toA[i]))
+                    toA[i] = "";
+            }
+            for (String s1:fromA) { startAddress += s1+" "; }
+            for (String s1:toA) { finishAddress += s1+" "; }
+            s = (startAddress.trim()+"~"+finishAddress.trim()).trim();
+        }
+        else
+            s = startAddress;
+        return s;
     }
 
     private void drawTrackLIne(GoogleMap googleMap) {
@@ -279,9 +302,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             iv.setImageBitmap(trackMap);
             final TrackLog trackLog = trackLogs.get(position);
             trackLog.setBitMap(trackMap);
-            trackLog.setPlaceName(startAddress);
+            trackLog.setPlaceName(fromToAddress);
             trackLogs.set(position, trackLog);
-            databaseIO.trackMapPlaceUpdate(trackLog.getStartTime(), trackMap, startAddress);
+            databaseIO.trackMapPlaceUpdate(trackLog.getStartTime(), trackMap, fromToAddress);
             trackAdapter.notifyItemChanged(position);
         }
     };

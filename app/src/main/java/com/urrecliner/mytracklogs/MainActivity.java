@@ -3,6 +3,8 @@ package com.urrecliner.mytracklogs;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -12,10 +14,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -72,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     final static String logID = "Main";
     private static Handler updateMarker, notifyAction;
-    FloatingActionButton fabGoStop, fabWalkDrive, fabPauseRestart;
+    FloatingActionButton fabGoStop, fabPauseRestart;
     long prevLogTime, elapsedTime;
     TextView tvStartDate, tvStartTime, tvMeter, tvMinutes;
     Intent serviceIntent;
@@ -88,12 +94,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
     double totSpeed = 0, totDistance = 0;
+    boolean click;
 
     ArrayList<LatLng> latLngPos;
     ArrayList<Double> latSVs, lonSVs, latQues, lonQues;
     final int QUE_COUNT = 5;
+    MainDialog mainDialog;
+    PopupWindow popupWindow;
 
 //    @SuppressLint("RestrictedApi")
+    @SuppressLint("RestrictedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         mContext = this;
@@ -124,25 +134,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         sharePrefer = getSharedPreferences("myTracks", Context.MODE_PRIVATE);
 
         databaseIO = new DatabaseIO();
-        fabWalkDrive = findViewById(R.id.fabWalkDrive);
         fabGoStop = findViewById(R.id.fabGoStop);
         fabPauseRestart = findViewById(R.id.fabPause);
-        fabPauseRestart.setAlpha(0.2f);
-        fabWalkDrive.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                isWalk = !isWalk;
-                fabWalkDrive.setImageResource((isWalk)? R.mipmap.footprint : R.mipmap.drive);
-            }
-        });
+        fabPauseRestart.setVisibility(View.GONE);
+//        fabPauseRestart.setAlpha(0.2f);
 
         fabGoStop.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("RestrictedApi")
             @Override
             public void onClick(View view) {
-                goStop_Clicked();
+                if (modeStarted) {
+                    confirmFinish();
+                } else {
+                    mainDialog = new MainDialog();
+                    mainDialog.show(getFragmentManager(), null);
+                }
             }
         });
+
         fabPauseRestart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -182,22 +191,46 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         gpsTracker.stopGPSUpdate();
     }
 
-    void goStop_Clicked() {
-        if (modeStarted) {
-            confirmFinish();
+    public static class MainDialog extends DialogFragment {
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            AlertDialog.Builder mBuilder = new AlertDialog.Builder(getActivity(), R.style.Theme_MaterialComponents_Dialog_MinWidth);
+            LayoutInflater mLayoutInflater = getActivity().getLayoutInflater();
+            mBuilder.setView(mLayoutInflater.inflate(R.layout.dialog_walk_drive, null));
+//            mBuilder.setTitle(getString(R.string.walk_drive));
+            return mBuilder.create();
         }
-        else {
-            go_Clicked();
+
+        @Override
+        public void onStop() {
+            super.onStop();
         }
+
     }
 
+    public void start_Walk(View v) {
+        isWalk = true;
+        mainDialog.dismiss();
+        go_Clicked();
+    }
+
+    public void start_Drive(View v) {
+        isWalk = false;
+        mainDialog.dismiss();
+        go_Clicked();
+    }
+
+    @SuppressLint("RestrictedApi")
     void go_Clicked() {
         modeStarted = true;
         modePaused = false;
         gpsTracker.stopGPSUpdate();
+
         beginTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_stop);
-        fabPauseRestart.setAlpha(1f);
+//        fabPauseRestart.setAlpha(1f);
+        fabPauseRestart.setVisibility(View.VISIBLE);
         updateNotification(ACTION_START);
     }
 
@@ -222,6 +255,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    @SuppressLint("RestrictedApi")
     void finish_tracking() {
         modeStarted = false;
         modePaused = false;
@@ -229,7 +263,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         utils.log("minMax", " sMax="+sMax+" sMin="+sMin);
         endTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_start);
-        fabPauseRestart.setAlpha(0.2f);
+//        fabPauseRestart.setAlpha(0.2f);
+        fabPauseRestart.setVisibility(View.GONE);
         utils.deleteOldLogFiles();
         updateNotification(ACTION_STOP);
     }
@@ -266,8 +301,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void endTrackLog() {
         finishTime = System.currentTimeMillis();
-        gpsTracker.stopGPSUpdate();
         latitudeGPS = gpsTracker.getGpsLatitude(); longitudeGPS = gpsTracker.getGpsLongitude();
+        gpsTracker.stopGPSUpdate();
         for (int i = 0; i < QUE_COUNT-1; i++) {
             locationChanged(false);
             SystemClock.sleep(150);

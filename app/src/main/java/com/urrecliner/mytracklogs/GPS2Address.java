@@ -34,7 +34,7 @@ public class GPS2Address {
 
                 return MergedAddress(Feature, Thorough, SubLocality, Locality, State, SState, Country, CountryCode);
             } else {
-                return "\nnull address text";
+                return null;
             }
         } catch (IOException e) {
             return "\nNo Address found";

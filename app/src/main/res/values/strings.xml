@@ -7,5 +7,7 @@
     <string name="track_recording"> 기록하기</string>
     <string name="review_map">" 지도보기"</string>
     <string name="track_list">" 이동 리스트"</string>
+    <string name="walk_drive">"운전? 걷기?"</string>
     <string name="press_start">시작 버튼을 누르세요</string>
+    <string name="none"></string>
 </resources>

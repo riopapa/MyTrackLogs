@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:layout_marginLeft="120dp"
+    android:layout_marginRight="120dp"
+    android:background="@drawable/back_round"
+    android:id="@+id/popupLayout"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <ImageView
+        android:id="@+id/runDrive"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="10dp"
+        android:onClick="start_Walk"
+        android:contentDescription="@string/none"
+        android:src="@mipmap/drive"
+        />
+
+    <ImageView
+        android:id="@+id/runWalk"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="10dp"
+        android:onClick="start_Walk"
+        android:contentDescription="@string/none"
+        android:src="@mipmap/footprint"
+        />
+</LinearLayout>
