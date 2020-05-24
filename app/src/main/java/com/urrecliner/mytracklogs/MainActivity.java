@@ -313,6 +313,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 (float) mapScale - 0.15f));
         elapsedTime = minutes + finishTime - beginTime;
         databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) elapsedTime / 60000);
+        databaseIO.logInsert(finishTime, latitudeGPS, longitudeGPS);
 //        utils.log("finish","NEW log "+sdfDateDayTime.format(startTime));/
         showMarker.drawHereOff();
         showMarker.drawFinish(latitudeGPS, longitudeGPS, false);
