@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         askPermission();
 
-        utils.log(logID,"//- Started -//");
+//        utils.log(logID,"//- Started -//");
 
         markerLatLng = new ArrayList<>(); markerLatLng.add(new LatLng(0,0)); markerLatLng.add(new LatLng(0,0));
         tvStartDate = findViewById(R.id.startDate);

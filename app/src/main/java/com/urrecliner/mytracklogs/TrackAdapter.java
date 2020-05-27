@@ -22,6 +22,7 @@ import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
 import static com.urrecliner.mytracklogs.Vars.trackActivity;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
+import static com.urrecliner.mytracklogs.Vars.trackPosition;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHolder>  {
@@ -43,12 +44,10 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
             this.viewLine.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    int position = getAdapterPosition();
-                    TrackLog trackLog = trackLogs.get(position);
+                    trackPosition = getAdapterPosition();
+                    TrackLog trackLog = trackLogs.get(trackPosition);
                     Intent intent = new Intent(trackActivity, MapActivity.class);
                     intent.putExtra("trackLog", trackLog);
-                    intent.putExtra("position", position);
-//                    utils.log(logID, "jump to Map");
                     trackActivity.startActivity(intent);
                 }
             });

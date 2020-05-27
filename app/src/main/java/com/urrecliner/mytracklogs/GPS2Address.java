@@ -34,10 +34,10 @@ public class GPS2Address {
 
                 return MergedAddress(Feature, Thorough, SubLocality, Locality, State, SState, Country, CountryCode);
             } else {
-                return null;
+                return "";
             }
         } catch (IOException e) {
-            return "\nNo Address found";
+            return "No Address found";
         }
     }
 

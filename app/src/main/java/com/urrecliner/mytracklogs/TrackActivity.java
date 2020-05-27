@@ -17,6 +17,8 @@ import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.trackActivity;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
+import static com.urrecliner.mytracklogs.Vars.trackPosition;
+import static com.urrecliner.mytracklogs.Vars.trackView;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class TrackActivity extends AppCompatActivity {
@@ -34,10 +36,10 @@ public class TrackActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        RecyclerView mRecyclerView = findViewById(R.id.track_recycler);
+        trackView = findViewById(R.id.track_recycler);
         LinearLayoutManager mLinearLayoutManager = new LinearLayoutManager(this);
 
-        mRecyclerView.setLayoutManager(mLinearLayoutManager);
+        trackView.setLayoutManager(mLinearLayoutManager);
         trackActivity = this;
         trackLogs = new ArrayList<>();
 
@@ -52,7 +54,7 @@ public class TrackActivity extends AppCompatActivity {
             cursor = databaseIO.trackFromTo();
         }
         trackAdapter = new TrackAdapter();
-        mRecyclerView.setAdapter(trackAdapter);
+        trackView.setAdapter(trackAdapter);
 
         ActionBar ab = this.getSupportActionBar();
         ab.setTitle(R.string.track_list);
@@ -75,6 +77,10 @@ public class TrackActivity extends AppCompatActivity {
                 } while (cursor.moveToNext());
             }
             cursor.close();
+        }
+        if (trackPosition != -1) {
+            trackView.scrollToPosition(trackPosition);
+            trackPosition = -1;
         }
     }
 }

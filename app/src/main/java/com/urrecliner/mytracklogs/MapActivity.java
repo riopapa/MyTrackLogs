@@ -12,6 +12,7 @@ import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.location.Geocoder;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -25,15 +26,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CustomCap;
-import com.google.android.gms.maps.model.Dash;
-import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.PatternItem;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -49,6 +45,8 @@ import static com.urrecliner.mytracklogs.Vars.prevLongitude;
 import static com.urrecliner.mytracklogs.Vars.showMarker;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
+import static com.urrecliner.mytracklogs.Vars.trackPosition;
+import static com.urrecliner.mytracklogs.Vars.trackView;
 import static com.urrecliner.mytracklogs.Vars.utils;
 import static java.lang.Math.min;
 
@@ -64,12 +62,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //    private static final PatternItem GAP = new Gap(PATTERN_GAP_LENGTH_PX);
 //    private static final List<PatternItem> PATTERN_POLYLINE_MINE = Arrays.asList(DASH, GAP);
     GoogleMap thisMap;
-    private String startAddress, fromToAddress;
+    private String resultAddress;
     double locSouth, locNorth, locWest, locEast;
     private Activity mapActivity;
     private long startTime, finishTime, timeBegin;
     private float timeDiff;
-    private int iMinutes, iMeters, position, iconWidth, iconHeight;
+    private int iMinutes, iMeters, iconWidth, iconHeight;
     ArrayList<LatLng> lineFromToLatLng;
     ArrayList<LocLog> locLogs;
     TextView tvTimeInfo, tvLogInfo, tvPlace;
@@ -103,7 +101,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         finishTime = trackLog.getFinishTime();
         iMinutes = trackLog.getMinutes();
         iMeters = trackLog.getMeters();
-        position = getIntent().getIntExtra("position",-1);
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.fragMap);
         mapFragment.getMapAsync(this);
@@ -130,9 +127,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         String s = "";
         if (retrieveDBLog()) return;
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-        startAddress = GPS2Address.get(geocoder, locLogs.get(0).latitude, locLogs.get(0).longitude);
-        String finishAddress = GPS2Address.get(geocoder, locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude);
-        fromToAddress = buildFromToAddress(startAddress, finishAddress);
+        String startAddress = GPS2Address.get(geocoder, locLogs.get(0).latitude, locLogs.get(0).longitude);
+        String mid1Address = GPS2Address.get(geocoder, locLogs.get((locLogs.size() - 1) / 3).latitude, locLogs.get((locLogs.size() - 1) / 3).longitude);
+        String mid2Address = GPS2Address.get(geocoder, locLogs.get((locLogs.size() - 1) / 3 * 2).latitude, locLogs.get((locLogs.size() - 1) / 3 * 2).longitude);
+        String finishAddress = GPS2Address.get(geocoder, locLogs.get(locLogs.size() - 1).latitude, locLogs.get(locLogs.size() - 1).longitude);
+        resultAddress = buildFromToAddress(startAddress, mid1Address, mid2Address, finishAddress);
         double fullMapDistance = mapUtils.getFullMapDistance(locEast, locWest, locSouth, locNorth);
         int mapScale = mapUtils.getMapScale(fullMapDistance);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
@@ -141,14 +140,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         tvTimeInfo.setText(s);
         timeBegin =  locLogs.get(0).logTime;
         timeDiff = locLogs.get(locLogs.size()-1).logTime - locLogs.get(0).logTime;
-        if (position != -1) {
+        if (trackPosition != -1) {
             s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
             tvLogInfo.setText(s);
         }
         else
             tvLogInfo.setVisibility(View.INVISIBLE);
         googleMap.getUiSettings().setCompassEnabled(true);
-        tvPlace.setText(fromToAddress);
+        tvPlace.setText(resultAddress);
         View v = findViewById(R.id.fragMap);
         v.post(new Runnable() {
             @Override
@@ -164,29 +163,64 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
     }
 
-    private String buildFromToAddress(String startAddress, String finishAddress) {
-        String s;
-        if (startAddress == null && finishAddress == null)
-            s = "위치 파악 안 됨";
-        else if (startAddress == null)
-            s = finishAddress;
-        else if (finishAddress == null)
-            s = startAddress;
-        else if (!startAddress.equals(finishAddress)) {
-            String [] fromA = startAddress.split(" ");
-            String [] toA = finishAddress.split(" ");
-            startAddress = ""; finishAddress = "";
-            for (int i = 0; i < Math.min(fromA.length, toA.length); i++) {
-                if (fromA[i].equals(toA[i]))
-                    toA[i] = "";
-            }
-            for (String s1:fromA) { startAddress += s1+" "; }
-            for (String s1:toA) { finishAddress += s1+" "; }
-            s = (startAddress.trim()+"~"+finishAddress.trim()).trim();
+    private String buildFromToAddress(String startAddress, String mid1Address, String mid2Address, String finishAddress) {
+        String result;
+        String [] sAddress, m1Address, m2Address, fAddress;
+        int sIdx, m1Idx, m2Idx, fIdx;
+
+        if (startAddress.equals(mid1Address))
+            mid1Address = "";
+        if (startAddress.equals(mid2Address))
+            mid2Address = "";
+        if (startAddress.equals(finishAddress))
+            finishAddress = "";
+        if (mid1Address.equals(mid2Address))
+            mid2Address = "";
+        if (mid1Address.equals(finishAddress))
+            finishAddress = "";
+        if (mid2Address.equals(finishAddress))
+            finishAddress = "";
+        sAddress = startAddress.split(" "); sIdx = sAddress.length;
+        m1Address = mid1Address.split(" "); m1Idx = m1Address.length;
+        m2Address = mid2Address.split(" "); m2Idx = m2Address.length;
+        fAddress = finishAddress.split(" "); fIdx = fAddress.length;
+
+        if (sIdx> 0 && fIdx > 0) {
+            squeezeAddress(sAddress, fAddress); fIdx = fAddress.length;
         }
-        else
-            s = startAddress;
-        return s;
+        if (sIdx> 0 && m1Idx > 0) {
+            squeezeAddress(sAddress, m1Address); m1Idx = m1Address.length;
+        }
+        if (sIdx> 0 && m2Idx > 0) {
+            squeezeAddress(sAddress, m2Address); m2Idx = m2Address.length;
+        }
+        if (m1Idx> 0 && m2Idx > 0) {
+            squeezeAddress(m1Address, m2Address); m2Idx = m2Address.length;
+        }
+        if (m2Idx> 0 && fIdx > 0) {
+            squeezeAddress(m2Address, fAddress);
+        }
+        result = "";
+        startAddress = ""; for (String s:sAddress) {startAddress += s+" ";}
+        mid1Address = ""; for (String s:m1Address) {mid1Address += s+" ";}
+        mid2Address = ""; for (String s:m2Address) {mid2Address += s+" ";}
+        finishAddress = ""; for (String s:fAddress) {finishAddress += s+" ";}
+        if (startAddress.trim().length()> 0)
+            result += startAddress;
+        if (mid1Address.trim().length()> 0)
+            result += " > " + mid1Address;
+        if (mid2Address.trim().length()> 0)
+            result += " > " + mid2Address;
+        if (finishAddress.trim().length()> 0)
+            result += " > " + finishAddress;
+        return result;
+    }
+
+    private void squeezeAddress(String [] addr1, String [] addr2) {
+        for (int i = 0; i < Math.min(addr1.length, addr2.length); i++) {
+            if (addr1[i].equals(addr2[i]))
+                addr2[i] = "";
+        }
     }
 
     private void drawTrackLIne(GoogleMap googleMap) {
@@ -278,7 +312,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //            utils.log(logID," snapShot "+ reDrawCount);
             pureMap = Bitmap.createScaledBitmap(snapshot, iconWidth, iconHeight, false);
             drawTrackLIne(thisMap);
-            if (position >= 0) {
+            if (trackPosition >= 0) {
                 new Timer().schedule(new TimerTask() {
                     public void run() {
                         thisMap.snapshot(buildMapIcon);
@@ -300,12 +334,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             trackMap = filterBitmap(pureMap, Bitmap.createScaledBitmap(snapshot, iconWidth, iconHeight, false));
             ImageView iv = findViewById(R.id.smallMap);
             iv.setImageBitmap(trackMap);
-            final TrackLog trackLog = trackLogs.get(position);
+            TrackLog trackLog = trackLogs.get(trackPosition);
             trackLog.setBitMap(trackMap);
-            trackLog.setPlaceName(fromToAddress);
-            trackLogs.set(position, trackLog);
-            databaseIO.trackMapPlaceUpdate(trackLog.getStartTime(), trackMap, fromToAddress);
-            trackAdapter.notifyItemChanged(position);
+            trackLog.setPlaceName(resultAddress);
+            trackLogs.set(trackPosition, trackLog);
+            databaseIO.trackMapPlaceUpdate(trackLog.getStartTime(), trackMap, resultAddress);
+            trackAdapter.notifyItemChanged(trackPosition, trackLog);
         }
     };
 
@@ -324,4 +358,5 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         result.setPixels(pixelsR, 0, width, 0, 0, width, height);
         return result;
     }
+
 }

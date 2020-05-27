@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -20,10 +22,11 @@ class Vars {
     static long gpsUpdateTime = 0;
     static MapUtils mapUtils;
     static ShowMarker showMarker;
-
+    static RecyclerView trackView;
     static SharedPreferences sharePrefer;
     static ArrayList<TrackLog> trackLogs;
     static TrackAdapter trackAdapter;
+    static int trackPosition = -1;
     static SearchActivity searchActivity;
     static boolean modeStarted = false, modePaused = false;
 
