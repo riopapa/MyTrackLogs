@@ -10,16 +10,15 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
@@ -72,6 +71,7 @@ import static com.urrecliner.mytracklogs.Vars.prevLongitude;
 import static com.urrecliner.mytracklogs.Vars.sdfDateDayTime;
 import static com.urrecliner.mytracklogs.Vars.sharePrefer;
 import static com.urrecliner.mytracklogs.Vars.showMarker;
+import static com.urrecliner.mytracklogs.Vars.speedColor;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     boolean isWalk = true;
     double locSouth, locNorth, locWest, locEast;
     int mapScale = 17;
+
     GoogleMap mainMap;
     Polyline markLines = null;
     ArrayList<LatLng> markerLatLng;
@@ -93,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     double meters = 0;
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
-    double totSpeed = 0, totDistance = 0;
+    double totSpeed = 0, totDistance = 0, lowSpeed, highSpeed;
     boolean click;
 
     ArrayList<LatLng> latLngPos;
@@ -168,7 +169,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         ab.setIcon(R.mipmap.my_face) ;
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;
-        updateMarker = new Handler() {public void handleMessage(Message msg) { locationChanged(true); }};
+        updateMarker = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                Boolean isActive = (msg.what == 0) ? true:false;
+                LatLng latLng = (LatLng) msg.obj;
+                locationChanged(true, latLng.latitude, latLng.longitude);
+            }
+        };
         notifyAction = new Handler() {public void handleMessage(Message msg) { notificationClicked(msg.what); }};
 
         new Timer().schedule(new TimerTask() {
@@ -189,6 +197,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startLongitude = gpsTracker.getGpsLongitude();
         for (int i = 0; i < QUE_COUNT; i++) { latSVs.add(startLatitude); lonSVs.add(startLongitude); }
         gpsTracker.stopGPSUpdate();
+//        generateColor();  // generate speedColor table
     }
 
     public static class MainDialog extends DialogFragment {
@@ -209,14 +218,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    public void start_Walk(View v) {
+    public void start_Walk(View v) {    // start_Walk is called by activity.xml
         isWalk = true;
+        lowSpeed = 50f; highSpeed = 2500f;
         mainDialog.dismiss();
         go_Clicked();
     }
 
     public void start_Drive(View v) {
         isWalk = false;
+        lowSpeed = 300f; highSpeed = 60000f;
         mainDialog.dismiss();
         go_Clicked();
     }
@@ -261,7 +272,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         modePaused = false;
         utils.log(logID,"// values // avrDist="+(totDistance)/dbCount+", avr speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
         utils.log("minMax", " sMax="+sMax+" sMin="+sMin);
-        endTrackLog();
+        stopTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_start);
 //        fabPauseRestart.setAlpha(0.2f);
         fabPauseRestart.setVisibility(View.GONE);
@@ -299,13 +310,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
     }
 
-    void endTrackLog() {
+    void stopTrackLog() {
         finishTime = System.currentTimeMillis();
-        latitudeGPS = gpsTracker.getGpsLatitude(); longitudeGPS = gpsTracker.getGpsLongitude();
+        double smallLatitude = (gpsTracker.getGpsLatitude() - nowLatitude) / (QUE_COUNT-2);
+        double smallLongitude = (gpsTracker.getGpsLongitude() - nowLongitude) / (QUE_COUNT-2);
+        latitudeGPS = nowLatitude; longitudeGPS = nowLongitude;
         gpsTracker.stopGPSUpdate();
+
         for (int i = 0; i < QUE_COUNT-1; i++) {
-            locationChanged(false);
-            SystemClock.sleep(150);
+            latitudeGPS += smallLatitude; longitudeGPS += smallLongitude;
+//            locationChanged(false, latitudeGPS, longitudeGPS);
+            Message msg = updateMarker.obtainMessage(1, new LatLng(latitudeGPS, longitudeGPS));
+            updateMarker.sendMessage(msg);
+            SystemClock.sleep(300);
         }
         calcMapScale();
 //        utils.log(logID,"Final map scale is "+mapScale);
@@ -323,23 +340,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     double sMax = -9999f, sMin = 99999f;
     int resetCount = 0;
-    void locationChanged(boolean isRunning) {
+    void locationChanged(boolean isActive, double latitude, double longitude) {
 
-        nowLatitude = latitudeGPS; nowLongitude = longitudeGPS;
+        nowLatitude = latitude; nowLongitude = longitude;
         long nowTime = System.currentTimeMillis();
         long deltaTime = nowTime - prevLogTime;
-        if (isRunning && deltaTime < 300)
+        if (isActive && deltaTime < 300)
             return;
-        double distance = mapUtils.getShortDistance();
+        double distance = mapUtils.getShortDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude);
         double speed = distance / (double)deltaTime * 1000f * 60f;
         sMax = Math.max(sMax,speed); sMin = Math.min(sMin, speed);
-        if (resetCount++ < 10 && isRunning) {
-            if (isWalk && (speed>2500f || speed < 100f)) {
-                utils.log("Walk", "BAD Walk "+resetCount+ " Speed " + speed+" XTime "+deltaTime);
-                return;
-            }
-            if (!isWalk && (speed>100000f || speed < 300f)) {
-                utils.log("Drive", "BAD Drive " +resetCount+ " Speed " + speed+" XTime "+deltaTime);
+        if (resetCount++ < 10 && isActive) {
+            if (speed < lowSpeed || speed > highSpeed) {
+                utils.log("Count "+resetCount, isWalk+ "{BAD} "+resetCount+ " Speed " + speed+" XTime "+deltaTime);
                 return;
             }
         }
@@ -359,9 +372,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (nowLongitude < locWest) locWest = nowLongitude;
 
         latQues.add(nowLatitude); lonQues.add(nowLongitude);
-        drawTrackLogs();
-        distance = mapUtils.getShortDistance();
-        meters += distance; // * 1.1f;
+        int color = speedColor[(int) ((speed-lowSpeed)/highSpeed*100)];
+        drawTrackLogs(color);
+        meters += mapUtils.getShortDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude) * 1.1f;
         if (dbCount % 2 == 0) {
             databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
             databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
@@ -373,13 +386,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         prevLongitude = nowLongitude;
         prevLogTime = nowTime;
         dbCount++;
-        utils.log("GOOD", " speed " + speed+" time "+deltaTime+" avspeed "+(totSpeed)/dbCount);
+//        utils.log("GOOD "+isWalk, " speed " + speed+" time "+deltaTime+" avspeed "+(totSpeed)/dbCount);
     }
 
     void adjustPosition() {
-        int k = QUE_COUNT-1;
-        latSVs.set(k,(latSVs.get(k)+ latSVs.get(k-1))/2);
-        lonSVs.set(k,(lonSVs.get(k)+ lonSVs.get(k-1))/2);
+//        int k = QUE_COUNT-2;
+//        latSVs.set(k,(latSVs.get(k)+ latSVs.get(k-1))/2);
+//        lonSVs.set(k,(lonSVs.get(k)+ lonSVs.get(k-1))/2);
         for (int i = 0; i < QUE_COUNT-2; i++) {
             latSVs.set(i+1,((latSVs.get(i)+ latSVs.get(i+2))/2+latSVs.get(i+1))/2);
             lonSVs.set(i+1,((lonSVs.get(i)+ lonSVs.get(i+2))/2+lonSVs.get(i+1))/2);
@@ -407,9 +420,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     static double latitudeGPS, longitudeGPS;
-    static void locationUpdated(Double latitude, Double longitude) {
-        latitudeGPS = latitude; longitudeGPS = longitude;
-        updateMarker.sendEmptyMessage(0);
+    static void locationUpdatedByGPSTracker(Double latitude, Double longitude) {
+        Message msg = updateMarker.obtainMessage(0, new LatLng(latitude, longitude));
+        updateMarker.sendMessage(msg);
+//        latitudeGPS = latitude; longitudeGPS = longitude;
+//        updateMarker.sendEmptyMessage(0);
     }
 
     static void notificationBarTouched(int buttonType) {
@@ -443,11 +458,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    void drawTrackLogs() {
+    void drawTrackLogs(int color) {
         while (latQues.size() > 2) {
             markerLatLng.set(0, new LatLng(latQues.get(0), lonQues.get(0)));
             markerLatLng.set(1, new LatLng(latQues.get(1), lonQues.get(1)));
-            showMarker.drawLine(markerLatLng, isWalk);
+            showMarker.drawLine(markerLatLng, isWalk, color);
             latQues.remove(0); lonQues.remove(0);
         }
     }
@@ -552,6 +567,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         AlertDialog dialog = builder.create();
         dialog.show();
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
+    }
+
+    /*
+    generate static color table speedColor index value
+     */
+    void generateColor() {
+        AnimatedColor animatedColor = new AnimatedColor(Color.rgb(0,152,0), Color.rgb(152,0,0));
+        StringBuilder s = new StringBuilder();
+        s.append("\n{\t");
+        for (int i = 0; i < 100; i++) {
+            float ratio = (float) i / 100;
+            if (i%10 == 0)
+                s.append("\n\t\t\t");
+            s.append("0x"+String.format("%06X", animatedColor.with(ratio))+", ");
+        }
+        utils.log(logID,s.toString());
     }
 
     // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓

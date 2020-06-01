@@ -26,11 +26,11 @@ class MapUtils {
         return locationPrev.distanceTo(locationNow);
     }
 
-    double getShortDistance() {
-        locationPrev.setLatitude(prevLatitude);
-        locationPrev.setLongitude(prevLongitude);
-        locationNow.setLatitude(nowLatitude);
-        locationNow.setLongitude(nowLongitude);
+    double getShortDistance(double x1, double y1, double x2, double y2) {
+        locationPrev.setLatitude(x1);
+        locationPrev.setLongitude(y1);
+        locationNow.setLatitude(x2);
+        locationNow.setLongitude(y2);
         return locationPrev.distanceTo(locationNow);
     }
 

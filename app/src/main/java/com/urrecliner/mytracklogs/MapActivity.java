@@ -43,6 +43,7 @@ import static com.urrecliner.mytracklogs.Vars.nowLongitude;
 import static com.urrecliner.mytracklogs.Vars.prevLatitude;
 import static com.urrecliner.mytracklogs.Vars.prevLongitude;
 import static com.urrecliner.mytracklogs.Vars.showMarker;
+import static com.urrecliner.mytracklogs.Vars.speedColor;
 import static com.urrecliner.mytracklogs.Vars.trackAdapter;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.trackPosition;
@@ -68,6 +69,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private long startTime, finishTime, timeBegin;
     private float timeDiff;
     private int iMinutes, iMeters, iconWidth, iconHeight;
+    double lowSpeed, highSpeed, speed;
     ArrayList<LatLng> lineFromToLatLng;
     ArrayList<LocLog> locLogs;
     TextView tvTimeInfo, tvLogInfo, tvPlace;
@@ -75,12 +77,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     static class LocLog {
         private long logTime;
-        private double latitude, longitude;
+        private double latitude, longitude, speed;
 
-        LocLog(long logTime, double latitude, double longitude) {
+        LocLog(long logTime, double latitude, double longitude, double speed) {
             this.logTime = logTime;
             this.latitude = latitude;
             this.longitude = longitude;
+            this.speed = speed;
         }
     }
 
@@ -228,23 +231,22 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         lineFromToLatLng.add(new LatLng(0,0));
         lineFromToLatLng.add(new LatLng(0,0));
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.triangle);
-        AnimatedColor animatedColor = new AnimatedColor(Color.MAGENTA, Color.CYAN);
-        int color, width;
+//        AnimatedColor animatedColor = new AnimatedColor(Color.GREEN, Color.RED);
         for (int i = 0; i < locLogs.size()-2; i++) {
             lineFromToLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
             lineFromToLatLng.set(1, new LatLng(locLogs.get(i+1).latitude, locLogs.get(i+1).longitude));
-            float ratio = (float) (locLogs.get(i).logTime-timeBegin) / timeDiff;
-            color = animatedColor.with(ratio);
+            int idx  = (int) ((locLogs.get(i).speed-lowSpeed)/highSpeed*100);
+            int color = speedColor[idx];
+//            utils.log(""+i," "+idx+" speed="+locLogs.get(i).speed);
             Bitmap colorBitmap = changeBitmapColor(bitmap, color);
-            width = POLYLINE_STROKE_WIDTH_PX;
-            if (i % 3 == 0)
-                color = color ^ 0x03333333;
+//            if (i % 3 == 0)
+//                color = color ^ 0x03333333;
 //            else if (i % 4 == 0) {
 //                color = 0xFF0F0F0F;
 //                width = width * 2 / 3;
 //            }
             PolylineOptions polyOptions = new PolylineOptions();
-            polyOptions.width(width);
+            polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
             CustomCap endCap = new CustomCap(BitmapDescriptorFactory.fromBitmap(colorBitmap), 20);
             polyOptions.endCap(endCap);
             polyOptions.addAll(lineFromToLatLng);
@@ -272,34 +274,45 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         utils.log(logID,"start of retrieve");
         Cursor cursor = databaseIO.logGetFromTo(startTime, finishTime);
-        if (cursor != null) {
-            utils.log(logID, "count ="+cursor.getCount());
-            if (cursor.moveToFirst()) {
-                locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
-                locLogs = new ArrayList<>();
-                prevLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
-                prevLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
-                do {
-                    long thisTime = cursor.getLong(cursor.getColumnIndex("logTime"));
-                    nowLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
-                    nowLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
-                    locLogs.add(new LocLog(thisTime, nowLatitude, nowLongitude));
-                    if (nowLatitude > locNorth) locNorth = nowLatitude;
-                    if (nowLatitude < locSouth) locSouth = nowLatitude;
-                    if (nowLongitude > locEast) locEast = nowLongitude;
-                    if (nowLongitude < locWest) locWest = nowLongitude;
-                } while (cursor.moveToNext());
-                locLogs.add(new LocLog(locLogs.get(locLogs.size()-1).logTime, nowLatitude, nowLongitude));
-            }
-            if (cursor.getCount() < 4) {
-                Toast.makeText(mapActivity,"자료가 너무 작음("+cursor.getCount()+"), 삭제 요망",Toast.LENGTH_LONG).show();
-                return true;
-            }
-        }
-        else {
+        if (cursor == null) {
             Toast.makeText(mContext,"No log data to display ",Toast.LENGTH_LONG).show();
             utils.log("no data",utils.long2DateDay(startTime)+" "+utils.long2Time(startTime)+" ~ "+utils.long2DateDay(finishTime)+" "+utils.long2Time(finishTime));
             return true;
+        }
+        utils.log(logID, "count ="+cursor.getCount());
+        if (cursor.getCount() < 5) {
+            Toast.makeText(mapActivity,"자료가 너무 작음("+cursor.getCount()+"), 삭제 요망",Toast.LENGTH_LONG).show();
+            return true;
+        }
+        if (cursor.moveToFirst()) {
+            highSpeed = 0; lowSpeed = 99999999f;
+            locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
+            locLogs = new ArrayList<>();
+            prevLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
+            prevLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
+            long prevLogTime = cursor.getLong(cursor.getColumnIndex("logTime"));
+            cursor.moveToNext();
+            do {
+                long thisTime = cursor.getLong(cursor.getColumnIndex("logTime"));
+                nowLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
+                nowLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
+                if (nowLatitude > locNorth) locNorth = nowLatitude;
+                if (nowLatitude < locSouth) locSouth = nowLatitude;
+                if (nowLongitude > locEast) locEast = nowLongitude;
+                if (nowLongitude < locWest) locWest = nowLongitude;
+                long deltaTime = thisTime - prevLogTime;
+                double distance = mapUtils.getShortDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude);
+                speed = distance / (double)deltaTime * 1000f * 60f;
+                locLogs.add(new LocLog(thisTime, nowLatitude, nowLongitude, speed));
+                if (speed > highSpeed)
+                    highSpeed = speed;
+                if (speed < lowSpeed)
+                    lowSpeed = speed;
+                prevLogTime = thisTime;
+                prevLatitude = nowLatitude; prevLongitude = nowLongitude;
+            } while (cursor.moveToNext());
+            locLogs.add(new LocLog(locLogs.get(locLogs.size()-1).logTime, nowLatitude, nowLongitude, speed));
+            utils.log("check@@","@@ // lowSpeed="+lowSpeed+", highSpeed="+highSpeed);
         }
         return false;
     }

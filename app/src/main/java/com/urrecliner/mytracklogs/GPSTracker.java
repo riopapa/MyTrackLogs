@@ -1,25 +1,16 @@
 package com.urrecliner.mytracklogs;
 
 import android.Manifest;
-import android.app.IntentService;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.widget.RemoteViews;
 
-import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
 
 import static com.urrecliner.mytracklogs.Vars.gpsUpdateTime;
 import static com.urrecliner.mytracklogs.Vars.mContext;
@@ -103,7 +94,7 @@ class GPSTracker extends Service implements LocationListener {
         gpsUpdateTime = System.currentTimeMillis();
 //        long nowTime = System.currentTimeMillis();
 //        prevTime = nowTime;
-        MainActivity.locationUpdated(gpsLatitude, gpsLongitude);
+        MainActivity.locationUpdatedByGPSTracker(gpsLatitude, gpsLongitude);
     }
 
     @Override

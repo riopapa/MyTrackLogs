@@ -25,7 +25,7 @@
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:layout_margin="10dp"
-        android:onClick="start_Walk"
+        android:onClick="start_Drive"
         android:contentDescription="@string/none"
         android:src="@mipmap/footprint"
         />

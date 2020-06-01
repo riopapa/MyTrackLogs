@@ -109,7 +109,7 @@ class ShowMarker {
 
     private Polyline polyline = null;
     private ArrayList<LatLng> prevLatLng = null;
-    void drawLine(final ArrayList<LatLng> nowLatLng, final boolean isWalk) {
+    void drawLine(final ArrayList<LatLng> nowLatLng, final boolean isWalk, final int color) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -131,7 +131,7 @@ class ShowMarker {
                                         BitmapDescriptorFactory.fromResource(R.mipmap.drive_mini), 6);
                         polyOptions = new PolylineOptions();
                         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
-                        polyOptions.color(showActivity.getColor(R.color.trackRoute));
+                        polyOptions.color(color);
                         polyOptions.endCap(endCap);
                         polyOptions.addAll(nowLatLng);
                         polyline = thisMap.addPolyline(polyOptions);
