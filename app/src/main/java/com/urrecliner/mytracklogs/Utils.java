@@ -23,7 +23,7 @@ import static com.urrecliner.mytracklogs.Vars.sdfDate;
 import static com.urrecliner.mytracklogs.Vars.sdfDateDay;
 import static com.urrecliner.mytracklogs.Vars.sdfDateDayTime;
 import static com.urrecliner.mytracklogs.Vars.sdfDateTimeLog;
-import static com.urrecliner.mytracklogs.Vars.sdfTime;
+import static com.urrecliner.mytracklogs.Vars.sdfTimeOnly;
 
 class Utils {
 
@@ -36,7 +36,7 @@ class Utils {
         log = (traces.length >6) ? traceName(traces[6].getMethodName()):"";
         log = log + traceName(traces[5].getMethodName()) + traceName(traces[4].getMethodName()) + traceClassName(traces[3].getClassName())+"> "+traces[3].getMethodName() + "#" + traces[3].getLineNumber() + " {"+ tag + "} " + text;
         Log.w(tag , log);
-        append2file(sdfDateTimeLog.format(new Date())+" " +log);
+        append2file(sdfDateTimeLog.format(System.currentTimeMillis())+" " +log);
     }
 
     private String [] ignoreTraces = { "dispatchTransaction", "zza", "performResume", "performCreate", "callActivityOnResume",
@@ -110,19 +110,19 @@ class Utils {
         return directory;
     }
 
-    ArrayList<File> getFilteredFileList(String fullPath) {
-        File[] fullFileList = new File(fullPath).listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith("jpg");
-            }
-        });
-        ArrayList<File> sortedFileList = new ArrayList<>();
-        if (fullFileList != null)
-            sortedFileList.addAll(Arrays.asList(fullFileList));
-        return sortedFileList;
-    }
-
+//    ArrayList<File> getFilteredFileList(String fullPath) {
+//        File[] fullFileList = new File(fullPath).listFiles(new FilenameFilter() {
+//            @Override
+//            public boolean accept(File dir, String name) {
+//                return name.endsWith("jpg");
+//            }
+//        });
+//        ArrayList<File> sortedFileList = new ArrayList<>();
+//        if (fullFileList != null)
+//            sortedFileList.addAll(Arrays.asList(fullFileList));
+//        return sortedFileList;
+//    }
+//
     private String getAppLabel(Context context) {
         PackageManager packageManager = context.getPackageManager();
         ApplicationInfo applicationInfo = null;
@@ -139,9 +139,9 @@ class Utils {
     }
     String long2DateDayTime(long l) { return sdfDateDayTime.format(l); }
     String long2Time (long l) {
-        return sdfTime.format(l);
+        return sdfTimeOnly.format(l);
     }
-    String minute2Text(int m) { return (m < 60) ? m+"분":(m/60)+"시간 "+(m%60)+"분"; }
+    String minute2Text(int minute) { return (minute < 60) ? minute+"분":(minute/60)+"시간 "+(minute%60)+"분"; }
 
     void deleteOldLogFiles() {
 

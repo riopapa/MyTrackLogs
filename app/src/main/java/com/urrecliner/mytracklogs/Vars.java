@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.widget.ImageView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -28,15 +29,15 @@ class Vars {
     static TrackAdapter trackAdapter;
     static int trackPosition = -1;
     static SearchActivity searchActivity;
-    static boolean modeStarted = false, modePaused = false;
+    static boolean modeStarted = false, modePaused = false, isWalk = true;
 
     static double prevLatitude, prevLongitude, nowLatitude, nowLongitude;
     static Bitmap dummyMap;
     static DecimalFormat decimalComma = new DecimalFormat("##,###,###");
     static SimpleDateFormat sdfDateDay = new SimpleDateFormat("MM-dd(EEE)", Locale.getDefault());
     static SimpleDateFormat sdfDateDayTime = new SimpleDateFormat("MM-dd(EEE) HH:mm", Locale.getDefault());
-    static SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm", Locale.getDefault());
-    static SimpleDateFormat sdfDateTimeLog = new SimpleDateFormat("MM-dd HH.mm.ss sss", Locale.US);
+    static SimpleDateFormat sdfTimeOnly = new SimpleDateFormat("HH:mm", Locale.getDefault());
+    static SimpleDateFormat sdfDateTimeLog = new SimpleDateFormat("MM-dd HH.mm.ss SSS", Locale.US);
     static SimpleDateFormat sdfDate = new SimpleDateFormat("yy-MM-dd", Locale.US);
 
     final static String ACTION_INIT = "init";

@@ -12,6 +12,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.IBinder;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RemoteViews;
 
@@ -39,7 +40,7 @@ import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_SHOW_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_SHOW_MAIN;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_CONFIRMED_STOP;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_YES_STOP;
-import static com.urrecliner.mytracklogs.Vars.mainActivity;
+import static com.urrecliner.mytracklogs.Vars.isWalk;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class NotificationService extends Service {
@@ -51,6 +52,7 @@ public class NotificationService extends Service {
     private RemoteViews mRemoteViews;
     private final String logID = "Notify";
     private boolean isStarted;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -126,7 +128,8 @@ public class NotificationService extends Service {
                 break;
             case ACTION_START:
             case ACTION_RESTART:
-                mBuilder.setSmallIcon(R.mipmap.button_start);
+                mBuilder.setSmallIcon((isWalk)? R.mipmap.foot_mini: R.mipmap.drive);
+                mRemoteViews.setImageViewResource(R.id.nTrackIcon, (isWalk) ? R.mipmap.footprint: R.mipmap.drive);
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_stop);
                 mRemoteViews.setImageViewResource(R.id.nPause, R.mipmap.button_pause);
                 mRemoteViews.setViewVisibility(R.id.nPause, View.VISIBLE);
@@ -212,11 +215,6 @@ public class NotificationService extends Service {
         mBuilder.setContentIntent(pi);
         mRemoteViews.setOnClickPendingIntent(R.id.nNo, pi);
 
-        intent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
-        pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_SHOW_MAIN, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(pi);
-        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, pi);
-
         intent.putExtra("operation", NOTIFICATION_BAR_GO_STOP);
         pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_GO_STOP, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pi);
@@ -231,6 +229,10 @@ public class NotificationService extends Service {
         pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_EXIT_APP, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pi);
         mRemoteViews.setOnClickPendingIntent(R.id.nExit, pi);
+
+        Intent mainIntent = new Intent(mContext, MainActivity.class);   // bring mainActivity on Top
+        mainIntent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
+        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
 
     }
 

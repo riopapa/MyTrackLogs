@@ -13,6 +13,7 @@ import android.graphics.Paint;
 import android.location.Geocoder;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -74,6 +75,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     ArrayList<LocLog> locLogs;
     TextView tvTimeInfo, tvLogInfo, tvPlace;
     SupportMapFragment mapFragment;
+    ArrayList<String[]> places;
+    Geocoder geocoder;
+    GPS2Address gps2Address;
 
     static class LocLog {
         private long logTime;
@@ -91,7 +95,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-
         mapActivity = this;
         int orientation = this.getResources().getConfiguration().orientation;
         if (orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -109,8 +112,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
         tvTimeInfo =  findViewById(R.id.timeSummary);
         tvLogInfo =  findViewById(R.id.logSummary);
-        tvPlace = findViewById(R.id.logPlace);
-
+        gps2Address = new GPS2Address();
         ImageView iv = findViewById(R.id.smallMap);
         iv.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -124,17 +126,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
 
         thisMap = googleMap;
+        places= new ArrayList<String[]>();
         if (showMarker == null)
             showMarker = new ShowMarker();
         showMarker.init(mapActivity, googleMap);
         String s = "";
         if (retrieveDBLog()) return;
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-        String startAddress = GPS2Address.get(geocoder, locLogs.get(0).latitude, locLogs.get(0).longitude);
-        String mid1Address = GPS2Address.get(geocoder, locLogs.get((locLogs.size() - 1) / 3).latitude, locLogs.get((locLogs.size() - 1) / 3).longitude);
-        String mid2Address = GPS2Address.get(geocoder, locLogs.get((locLogs.size() - 1) / 3 * 2).latitude, locLogs.get((locLogs.size() - 1) / 3 * 2).longitude);
-        String finishAddress = GPS2Address.get(geocoder, locLogs.get(locLogs.size() - 1).latitude, locLogs.get(locLogs.size() - 1).longitude);
-        resultAddress = buildFromToAddress(startAddress, mid1Address, mid2Address, finishAddress);
+        geocoder = new Geocoder(this, Locale.getDefault());
         double fullMapDistance = mapUtils.getFullMapDistance(locEast, locWest, locSouth, locNorth);
         int mapScale = mapUtils.getMapScale(fullMapDistance);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
@@ -143,14 +141,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         tvTimeInfo.setText(s);
         timeBegin =  locLogs.get(0).logTime;
         timeDiff = locLogs.get(locLogs.size()-1).logTime - locLogs.get(0).logTime;
-        if (trackPosition != -1) {
+        utils.log("Veryf trackPos",trackPosition+" ```");
+        if (iMinutes > 0) {
             s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
             tvLogInfo.setText(s);
         }
         else
             tvLogInfo.setVisibility(View.INVISIBLE);
         googleMap.getUiSettings().setCompassEnabled(true);
-        tvPlace.setText(resultAddress);
         View v = findViewById(R.id.fragMap);
         v.post(new Runnable() {
             @Override
@@ -166,64 +164,42 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
     }
 
-    private String buildFromToAddress(String startAddress, String mid1Address, String mid2Address, String finishAddress) {
-        String result;
-        String [] sAddress, m1Address, m2Address, fAddress;
-        int sIdx, m1Idx, m2Idx, fIdx;
+    private String buildFromToAddress() {
+        String result = "";
+//        for (int i = 0; i < places.size(); i++)
+//            Log.e("org place "+i, places.get(i)[0]+"*"+places.get(i)[1]+"*"+places.get(i)[2]+"*"+places.get(i)[3]+"*"+places.get(i)[4]+"*");
+        if (places.size() == 0)
+            return "";
+        result = places.get(0)[0];
+        if (!places.get(0)[1].equals(" ")) result += " "+places.get(0)[1];
+        if (!places.get(0)[2].equals(" ")) result += " "+places.get(0)[2];
+        if (!places.get(0)[3].equals(" ")) result += " "+places.get(0)[3];
+        if (!places.get(0)[4].equals(" ")) result += " "+places.get(0)[4];
+        for (int i = places.size()-1; i > 0; i--) {
+            if (places.get(i)[0].equals(places.get(i-1)[0]))
+                places.set(i, new String[]{" ", places.get(i)[1], places.get(i)[2], places.get(i)[3], places.get(i)[4]});
+            if (places.get(i)[1].equals(places.get(i-1)[1]))
+                places.set(i, new String[]{places.get(i)[0]," ",  places.get(i)[2], places.get(i)[3], places.get(i)[4]});
+            if (places.get(i)[2].equals(places.get(i-1)[2]))
+                places.set(i, new String[]{places.get(i)[0], places.get(i)[1], " ", places.get(i)[3], places.get(i)[4]});
+            if (places.get(i)[3].equals(places.get(i-1)[3]))
+                places.set(i, new String[]{places.get(i)[0], places.get(i)[1], places.get(i)[2], " ", places.get(i)[4]});
+            if (places.get(i)[4].equals(places.get(i-1)[4]))
+            places.set(i, new String[]{places.get(i)[0], places.get(i)[1], places.get(i)[2], places.get(i)[3], " "});
+        }
 
-        if (startAddress.equals(mid1Address))
-            mid1Address = "";
-        if (startAddress.equals(mid2Address))
-            mid2Address = "";
-        if (startAddress.equals(finishAddress))
-            finishAddress = "";
-        if (mid1Address.equals(mid2Address))
-            mid2Address = "";
-        if (mid1Address.equals(finishAddress))
-            finishAddress = "";
-        if (mid2Address.equals(finishAddress))
-            finishAddress = "";
-        sAddress = startAddress.split(" "); sIdx = sAddress.length;
-        m1Address = mid1Address.split(" "); m1Idx = m1Address.length;
-        m2Address = mid2Address.split(" "); m2Idx = m2Address.length;
-        fAddress = finishAddress.split(" "); fIdx = fAddress.length;
+        for (int i = 1; i < places.size(); i++) {
+            String newPlace = "";
+            if (!places.get(i)[0].equals(" ")) newPlace += places.get(i)[0];
+            if (!places.get(i)[1].equals(" ")) newPlace += " "+places.get(i)[1];
+            if (!places.get(i)[2].equals(" ")) newPlace += " "+places.get(i)[2];
+            if (!places.get(i)[3].equals(" ")) newPlace += " "+places.get(i)[3];
+            if (!places.get(i)[4].equals(" ")) newPlace += " "+places.get(i)[4];
+            if (newPlace.length() > 0)
+                result += " > " + newPlace;
+        }
 
-        if (sIdx> 0 && fIdx > 0) {
-            squeezeAddress(sAddress, fAddress); fIdx = fAddress.length;
-        }
-        if (sIdx> 0 && m1Idx > 0) {
-            squeezeAddress(sAddress, m1Address); m1Idx = m1Address.length;
-        }
-        if (sIdx> 0 && m2Idx > 0) {
-            squeezeAddress(sAddress, m2Address); m2Idx = m2Address.length;
-        }
-        if (m1Idx> 0 && m2Idx > 0) {
-            squeezeAddress(m1Address, m2Address); m2Idx = m2Address.length;
-        }
-        if (m2Idx> 0 && fIdx > 0) {
-            squeezeAddress(m2Address, fAddress);
-        }
-        result = "";
-        startAddress = ""; for (String s:sAddress) {startAddress += s+" ";}
-        mid1Address = ""; for (String s:m1Address) {mid1Address += s+" ";}
-        mid2Address = ""; for (String s:m2Address) {mid2Address += s+" ";}
-        finishAddress = ""; for (String s:fAddress) {finishAddress += s+" ";}
-        if (startAddress.trim().length()> 0)
-            result += startAddress;
-        if (mid1Address.trim().length()> 0)
-            result += " > " + mid1Address;
-        if (mid2Address.trim().length()> 0)
-            result += " > " + mid2Address;
-        if (finishAddress.trim().length()> 0)
-            result += " > " + finishAddress;
         return result;
-    }
-
-    private void squeezeAddress(String [] addr1, String [] addr2) {
-        for (int i = 0; i < Math.min(addr1.length, addr2.length); i++) {
-            if (addr1[i].equals(addr2[i]))
-                addr2[i] = "";
-        }
     }
 
     private void drawTrackLIne(GoogleMap googleMap) {
@@ -231,24 +207,43 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         lineFromToLatLng.add(new LatLng(0,0));
         lineFromToLatLng.add(new LatLng(0,0));
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.triangle);
-//        AnimatedColor animatedColor = new AnimatedColor(Color.GREEN, Color.RED);
+        CustomCap customCap;
+        int color, j = -1;
         for (int i = 0; i < locLogs.size()-2; i++) {
-            lineFromToLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
-            lineFromToLatLng.set(1, new LatLng(locLogs.get(i+1).latitude, locLogs.get(i+1).longitude));
-            int idx  = (int) ((locLogs.get(i).speed-lowSpeed)/highSpeed*100);
-            int color = speedColor[idx];
-//            utils.log(""+i," "+idx+" speed="+locLogs.get(i).speed);
-            Bitmap colorBitmap = changeBitmapColor(bitmap, color);
-//            if (i % 3 == 0)
-//                color = color ^ 0x03333333;
-//            else if (i % 4 == 0) {
-//                color = 0xFF0F0F0F;
-//                width = width * 2 / 3;
-//            }
+//            utils.log("locLogs",i+" speed="+locLogs.get(i).speed+" "+locLogs.get(i).latitude+" x "+locLogs.get(i).longitude);
             PolylineOptions polyOptions = new PolylineOptions();
             polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
-            CustomCap endCap = new CustomCap(BitmapDescriptorFactory.fromBitmap(colorBitmap), 20);
-            polyOptions.endCap(endCap);
+            if (locLogs.get(i).speed == -1) {
+                utils.log("i is -1"," this is zero "+i);
+                lineFromToLatLng.set(0, new LatLng(locLogs.get(i + 1).latitude, locLogs.get(i + 1).longitude));
+                lineFromToLatLng.set(1, new LatLng(locLogs.get(i + 2).latitude, locLogs.get(i + 2).longitude));
+                color = speedColor[0];
+                customCap = new CustomCap(BitmapDescriptorFactory.fromResource(R.mipmap.marker_start), 18);
+                polyOptions.startCap(customCap);
+                j = i+1;
+                places.add(gps2Address.getPlace(geocoder, locLogs.get(j).latitude, locLogs.get(j).longitude));
+            }
+            else if (locLogs.get(i+1).speed == -1) {
+                utils.log("i+1 is -1"," next is zero"+i);
+                lineFromToLatLng.set(0, new LatLng(locLogs.get(i-1).latitude, locLogs.get(i-1).longitude));
+                lineFromToLatLng.set(1, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
+                color = speedColor[0];
+                customCap = new CustomCap(BitmapDescriptorFactory.fromResource(R.mipmap.marker_finish), 18);
+                polyOptions.endCap(customCap);
+                if (j != 0) {
+                    j = (i+j) / 2;
+                    places.add(gps2Address.getPlace(geocoder, locLogs.get(j).latitude, locLogs.get(j).longitude));
+                }
+                places.add(gps2Address.getPlace(geocoder, locLogs.get(i).latitude, locLogs.get(i).longitude));
+            }
+            else {
+                color = speedColor[(int) ((locLogs.get(i).speed - lowSpeed) / highSpeed * 100)];
+                Bitmap colorBitmap = changeBitmapColor(bitmap, color);
+                customCap = new CustomCap(BitmapDescriptorFactory.fromBitmap(colorBitmap), 20);
+                polyOptions.endCap(customCap);
+                lineFromToLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
+                lineFromToLatLng.set(1, new LatLng(locLogs.get(i + 1).latitude, locLogs.get(i + 1).longitude));
+            }
             polyOptions.addAll(lineFromToLatLng);
             polyOptions.color(color);
             googleMap.addPolyline(polyOptions);
@@ -256,6 +251,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         showMarker.drawStart(locLogs.get(0).latitude, locLogs.get(0).longitude, true);
         showMarker.drawFinish(locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude, true);
+        places.add(gps2Address.getPlace(geocoder, locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude));
     }
     private Bitmap changeBitmapColor(Bitmap sourceBitmap, int color) {
 
@@ -272,6 +268,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
     private boolean retrieveDBLog() {
 
+        LocLog prevLog, nowLog;
+        highSpeed = 0; lowSpeed = 99999999f;
+        locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
+        locLogs = new ArrayList<>();
+
         utils.log(logID,"start of retrieve");
         Cursor cursor = databaseIO.logGetFromTo(startTime, finishTime);
         if (cursor == null) {
@@ -285,36 +286,46 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             return true;
         }
         if (cursor.moveToFirst()) {
-            highSpeed = 0; lowSpeed = 99999999f;
-            locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
-            locLogs = new ArrayList<>();
-            prevLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
-            prevLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
-            long prevLogTime = cursor.getLong(cursor.getColumnIndex("logTime"));
+            prevLog = cursor2Log(cursor);
+            if (prevLog.speed == -1) {
+                locLogs.add(prevLog);
+                if (cursor.moveToNext())
+                    prevLog = cursor2Log(cursor);
+            }
             cursor.moveToNext();
             do {
-                long thisTime = cursor.getLong(cursor.getColumnIndex("logTime"));
-                nowLatitude = cursor.getDouble(cursor.getColumnIndex("latitude"));
-                nowLongitude = cursor.getDouble(cursor.getColumnIndex("longitude"));
-                if (nowLatitude > locNorth) locNorth = nowLatitude;
-                if (nowLatitude < locSouth) locSouth = nowLatitude;
-                if (nowLongitude > locEast) locEast = nowLongitude;
-                if (nowLongitude < locWest) locWest = nowLongitude;
-                long deltaTime = thisTime - prevLogTime;
-                double distance = mapUtils.getShortDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude);
-                speed = distance / (double)deltaTime * 1000f * 60f;
-                locLogs.add(new LocLog(thisTime, nowLatitude, nowLongitude, speed));
-                if (speed > highSpeed)
-                    highSpeed = speed;
-                if (speed < lowSpeed)
-                    lowSpeed = speed;
-                prevLogTime = thisTime;
-                prevLatitude = nowLatitude; prevLongitude = nowLongitude;
+                nowLog = cursor2Log(cursor);
+                if (nowLog.speed == -1) {
+                    locLogs.add(nowLog);
+                    if(cursor.moveToNext())
+                        prevLog = cursor2Log(cursor);
+                }
+                else {
+                    locNorth = Math.max(nowLog.latitude, locNorth);
+                    locSouth = Math.min(nowLog.latitude, locSouth);
+                    locEast = Math.max(nowLog.longitude, locEast);
+                    locWest = Math.min(nowLog.longitude, locWest);
+                    long deltaTime = nowLog.logTime - prevLog.logTime;
+                    double deltaDistance = mapUtils.getShortDistance(prevLog.latitude, prevLog.longitude, nowLog.latitude, nowLog.longitude);
+                    double deltaSpeed = deltaDistance / (double) deltaTime * 1000f * 60f;
+                    nowLog.speed = deltaSpeed;
+                    locLogs.add(nowLog);
+                    highSpeed = Math.max(highSpeed, deltaSpeed);
+                    lowSpeed = Math.min(lowSpeed, deltaSpeed);
+                    prevLog = new LocLog(nowLog.logTime, nowLog.latitude, nowLog.longitude, deltaSpeed);
+                }
             } while (cursor.moveToNext());
-            locLogs.add(new LocLog(locLogs.get(locLogs.size()-1).logTime, nowLatitude, nowLongitude, speed));
+            locLogs.add(nowLog);
             utils.log("check@@","@@ // lowSpeed="+lowSpeed+", highSpeed="+highSpeed);
         }
         return false;
+    }
+
+    private LocLog cursor2Log(Cursor cursor) {
+         double lat = cursor.getDouble(cursor.getColumnIndex("latitude"));
+         double lon  = cursor.getDouble(cursor.getColumnIndex("longitude"));
+         long  time = cursor.getLong(cursor.getColumnIndex("logTime"));
+         return new LocLog(time, lat, lon, (lat == 0 && lon == 0) ? -1:0);
     }
 
     Bitmap pureMap = null, trackMap = null;
@@ -325,6 +336,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //            utils.log(logID," snapShot "+ reDrawCount);
             pureMap = Bitmap.createScaledBitmap(snapshot, iconWidth, iconHeight, false);
             drawTrackLIne(thisMap);
+            resultAddress = buildFromToAddress();
+            TextView tvPlaces = findViewById(R.id.logPlace);
+            tvPlaces.setText(resultAddress);
             if (trackPosition >= 0) {
                 new Timer().schedule(new TimerTask() {
                     public void run() {
@@ -371,5 +385,4 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         result.setPixels(pixelsR, 0, width, 0, 0, width, height);
         return result;
     }
-
 }

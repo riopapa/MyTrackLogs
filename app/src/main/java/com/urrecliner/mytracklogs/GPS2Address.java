@@ -6,10 +6,10 @@ import android.location.Geocoder;
 import java.io.IOException;
 import java.util.List;
 
-public class GPS2Address {
+class GPS2Address {
 
     final static String noInfo = "No_Info";
-    static String get(Geocoder geocoder, double latitude, double longitude) {
+    String[] getPlace(Geocoder geocoder, double latitude, double longitude) {
 
         try {
             List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
@@ -34,14 +34,14 @@ public class GPS2Address {
 
                 return MergedAddress(Feature, Thorough, SubLocality, Locality, State, SState, Country, CountryCode);
             } else {
-                return "";
+                return new String[]{"","",""};
             }
         } catch (IOException e) {
-            return "No Address found";
+            return new String[]{"No","Address","Found"};
         }
     }
 
-    private static String MergedAddress(String Feature, String Thorough, String SubLocality, String Locality, String SState, String State, String Country, String CountryCode) {
+    static String[] MergedAddress(String Feature, String Thorough, String SubLocality, String Locality, String SState, String State, String Country, String CountryCode) {
 
         if (Thorough.equals(Feature)) Feature = noInfo;
         if (SubLocality.equals(Feature)) Feature = noInfo;
@@ -53,36 +53,24 @@ public class GPS2Address {
 
         String addressMerged = "";
         if (CountryCode.equals("KR")) {
-            if (!State.equals(noInfo)) addressMerged += " " + State;
-            if (!SState.equals(noInfo)) addressMerged += " " + SState;
-            if (!Locality.equals(noInfo)) addressMerged += " " + Locality;
-            if (!SubLocality.equals(noInfo)) addressMerged += " " + SubLocality;
-            if (!Thorough.equals(noInfo)) addressMerged += " " + Thorough;
-            if (!Feature.equals(noInfo)) addressMerged += " " + Feature;
-            String [] addr = addressMerged.split(" ");
-            if (addr.length > 5)
-                addressMerged = addr[2]+" "+addr[3]+" "+addr[4];
-            else if (addr.length > 4)
-                addressMerged = addr[2]+" "+addr[3];
-            else if (addr.length > 3)
-                addressMerged = addr[2];
+            if (!State.equals(noInfo)) addressMerged += ";" + State;
+            if (!SState.equals(noInfo)) addressMerged += ";" + SState;
+            if (!Locality.equals(noInfo)) addressMerged += ";" + Locality;
+            if (!SubLocality.equals(noInfo)) addressMerged += ";" + SubLocality;
+            if (!Thorough.equals(noInfo)) addressMerged += ";" + Thorough;
+            if (!Feature.equals(noInfo)) addressMerged += ";" + Feature;
         }
         else {
-            if (!Feature.equals(noInfo)) addressMerged += " " + Feature;
-            if (!Thorough.equals(noInfo)) addressMerged += " " + Thorough;
-            if (!SubLocality.equals(noInfo)) addressMerged += " " + SubLocality;
-            if (!Locality.equals(noInfo)) addressMerged += " " + Locality;
-            if (!SState.equals(noInfo)) addressMerged += " " + SState;
-            if (!State.equals(noInfo)) addressMerged += " " + State;
-            if (!Country.equals(noInfo)) addressMerged += " " + Country;
-            String [] addr = addressMerged.split(" ");
-            if (addr.length> 4)
-                addressMerged = addr[addr.length-1]+" "+addr[addr.length-2]+" "+addr[addr.length-3];
-            else if (addr.length> 3)
-                addressMerged = addr[addr.length-1]+" "+addr[addr.length-2];
-            else if (addr.length> 2)
-                addressMerged = addr[addr.length-1];
+            if (!Feature.equals(noInfo)) addressMerged += ";" + Feature;
+            if (!Thorough.equals(noInfo)) addressMerged += ";" + Thorough;
+            if (!SubLocality.equals(noInfo)) addressMerged += ";" + SubLocality;
+            if (!Locality.equals(noInfo)) addressMerged += ";" + Locality;
+            if (!SState.equals(noInfo)) addressMerged += ";" + SState;
+            if (!State.equals(noInfo)) addressMerged += ";" + State;
+            if (!Country.equals(noInfo)) addressMerged += ";" + Country;
         }
-        return addressMerged;
+        addressMerged += "; ; ; ";
+        return addressMerged.split(";");
     }
+
 }

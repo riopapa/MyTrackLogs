@@ -30,11 +30,11 @@ public class TrackActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tracks);
         Log.w("track"," start //");
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
+//    }
+//
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
 
         trackView = findViewById(R.id.track_recycler);
         LinearLayoutManager mLinearLayoutManager = new LinearLayoutManager(this);
