@@ -7,10 +7,12 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -171,8 +173,9 @@ public class NotificationService extends Service {
     }
 
     private void showInForeground() {
-        ActivityManager am = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningTaskInfo> tasks =am.getRunningTasks(5); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
+
+        ActivityManager activityManager = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> tasks =activityManager.getRunningTasks(10); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
         if(!tasks.isEmpty()) {
             int tasksSize = tasks.size();
 //            utils.log(logID, "tasksSize "+tasksSize);
@@ -181,7 +184,7 @@ public class NotificationService extends Service {
 //                utils.log(logID, taskInfo.topActivity.getPackageName()+" vs "+ mContext.getPackageName());
                 if(taskInfo.topActivity.getPackageName().equals(mContext.getPackageName())) {
 //                    utils.log(logID, taskInfo.topActivity.getPackageName()+" EQUALS "+ mContext.getPackageName());
-                    am.moveTaskToFront(taskInfo.id, 0);
+                    activityManager.moveTaskToFront(taskInfo.id, 0);
                 }
             }
         }
@@ -215,6 +218,11 @@ public class NotificationService extends Service {
         mBuilder.setContentIntent(pi);
         mRemoteViews.setOnClickPendingIntent(R.id.nNo, pi);
 
+        intent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
+        pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_SHOW_MAIN, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pi);
+        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, pi);
+
         intent.putExtra("operation", NOTIFICATION_BAR_GO_STOP);
         pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_GO_STOP, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pi);
@@ -230,9 +238,10 @@ public class NotificationService extends Service {
         mBuilder.setContentIntent(pi);
         mRemoteViews.setOnClickPendingIntent(R.id.nExit, pi);
 
-        Intent mainIntent = new Intent(mContext, MainActivity.class);   // bring mainActivity on Top
-        mainIntent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
-        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
+//      Following start mainActivity, but from almost scracth, -_-
+//        Intent mainIntent = new Intent(mContext, MainActivity.class);   // bring mainActivity on Top
+//        mainIntent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
+//        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
 
     }
 

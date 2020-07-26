@@ -170,6 +170,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 //            Log.e("org place "+i, places.get(i)[0]+"*"+places.get(i)[1]+"*"+places.get(i)[2]+"*"+places.get(i)[3]+"*"+places.get(i)[4]+"*");
         if (places.size() == 0)
             return "";
+
         result = places.get(0)[0];
         if (!places.get(0)[1].equals(" ")) result += " "+places.get(0)[1];
         if (!places.get(0)[2].equals(" ")) result += " "+places.get(0)[2];

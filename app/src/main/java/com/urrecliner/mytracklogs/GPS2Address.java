@@ -34,10 +34,10 @@ class GPS2Address {
 
                 return MergedAddress(Feature, Thorough, SubLocality, Locality, State, SState, Country, CountryCode);
             } else {
-                return new String[]{"","",""};
+                return new String[]{" "," "," "," "," "};
             }
         } catch (IOException e) {
-            return new String[]{"No","Address","Found"};
+            return new String[]{"No","Address","Found","",""};
         }
     }
 
