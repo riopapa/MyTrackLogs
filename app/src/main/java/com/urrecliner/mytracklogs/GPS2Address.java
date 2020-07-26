@@ -19,7 +19,7 @@ class GPS2Address {
                 String Thorough = address.getThoroughfare();
                 String Locality = address.getLocality();
                 String SubLocality = address.getSubLocality();
-                String Country = address.getCountryName();  // or getCountryName()
+                String Country = address.getCountryName();
                 String CountryCode = address.getCountryCode();
                 String SState = address.getSubAdminArea();
                 String State = address.getAdminArea();
