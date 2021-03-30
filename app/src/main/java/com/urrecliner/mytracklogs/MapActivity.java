@@ -165,17 +165,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private String buildFromToAddress() {
-        String result = "";
+        StringBuilder result = new StringBuilder();
 //        for (int i = 0; i < places.size(); i++)
 //            Log.e("org place "+i, places.get(i)[0]+"*"+places.get(i)[1]+"*"+places.get(i)[2]+"*"+places.get(i)[3]+"*"+places.get(i)[4]+"*");
         if (places.size() == 0)
             return "";
 
-        result = places.get(0)[0];
-        if (!places.get(0)[1].equals(" ")) result += " "+places.get(0)[1];
-        if (!places.get(0)[2].equals(" ")) result += " "+places.get(0)[2];
-        if (!places.get(0)[3].equals(" ")) result += " "+places.get(0)[3];
-        if (!places.get(0)[4].equals(" ")) result += " "+places.get(0)[4];
+        result = new StringBuilder(places.get(0)[0]);
+        if (!places.get(0)[1].equals(" ")) result.append(" ").append(places.get(0)[1]);
+        if (!places.get(0)[2].equals(" ")) result.append(" ").append(places.get(0)[2]);
+        if (!places.get(0)[3].equals(" ")) result.append(" ").append(places.get(0)[3]);
+        if (!places.get(0)[4].equals(" ")) result.append(" ").append(places.get(0)[4]);
         for (int i = places.size()-1; i > 0; i--) {
             if (places.get(i)[0].equals(places.get(i-1)[0]))
                 places.set(i, new String[]{" ", places.get(i)[1], places.get(i)[2], places.get(i)[3], places.get(i)[4]});
@@ -186,21 +186,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             if (places.get(i)[3].equals(places.get(i-1)[3]))
                 places.set(i, new String[]{places.get(i)[0], places.get(i)[1], places.get(i)[2], " ", places.get(i)[4]});
             if (places.get(i)[4].equals(places.get(i-1)[4]))
-            places.set(i, new String[]{places.get(i)[0], places.get(i)[1], places.get(i)[2], places.get(i)[3], " "});
+                places.set(i, new String[]{places.get(i)[0], places.get(i)[1], places.get(i)[2], places.get(i)[3], " "});
         }
 
         for (int i = 1; i < places.size(); i++) {
-            String newPlace = "";
-            if (!places.get(i)[0].equals(" ")) newPlace += places.get(i)[0];
-            if (!places.get(i)[1].equals(" ")) newPlace += " "+places.get(i)[1];
-            if (!places.get(i)[2].equals(" ")) newPlace += " "+places.get(i)[2];
-            if (!places.get(i)[3].equals(" ")) newPlace += " "+places.get(i)[3];
-            if (!places.get(i)[4].equals(" ")) newPlace += " "+places.get(i)[4];
+            StringBuilder newPlace = new StringBuilder();
+            if (!places.get(i)[0].equals(" ")) newPlace.append(places.get(i)[0]);
+            if (!places.get(i)[1].equals(" ")) newPlace.append(" ").append(places.get(i)[1]);
+            if (!places.get(i)[2].equals(" ")) newPlace.append(" ").append(places.get(i)[2]);
+            if (!places.get(i)[3].equals(" ")) newPlace.append(" ").append(places.get(i)[3]);
+            if (!places.get(i)[4].equals(" ")) newPlace.append(" ").append(places.get(i)[4]);
             if (newPlace.length() > 0)
-                result += " > " + newPlace;
+                result.append(" > ").append(newPlace);
         }
 
-        return result;
+        return result.toString();
     }
 
     private void drawTrackLIne(GoogleMap googleMap) {

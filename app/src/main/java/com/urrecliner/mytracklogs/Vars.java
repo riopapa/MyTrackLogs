@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 class Vars {
-    static Activity mainActivity, trackActivity;
+    static Activity mActivity, trackActivity;
     static Context mContext;
 
     static Utils utils;
@@ -31,7 +31,7 @@ class Vars {
     static SearchActivity searchActivity;
     static boolean modeStarted = false, modePaused = false, isWalk = true;
 
-    static double prevLatitude, prevLongitude, nowLatitude, nowLongitude;
+    static double prevLatitude = -999, prevLongitude = -999, nowLatitude = 0, nowLongitude = 0;
     static Bitmap dummyMap;
     static DecimalFormat decimalComma = new DecimalFormat("##,###,###");
     static SimpleDateFormat sdfDateDay = new SimpleDateFormat("MM-dd(EEE)", Locale.getDefault());

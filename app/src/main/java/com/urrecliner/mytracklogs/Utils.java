@@ -14,8 +14,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 
 import static com.urrecliner.mytracklogs.Vars.mContext;
@@ -39,7 +37,7 @@ class Utils {
         append2file(sdfDateTimeLog.format(System.currentTimeMillis())+" " +log);
     }
 
-    private String [] ignoreTraces = { "dispatchTransaction", "zza", "performResume", "performCreate", "callActivityOnResume",
+    private final String [] ignoreTraces = { "dispatchTransaction", "zza", "performResume", "performCreate", "callActivityOnResume",
             "access$1200", "access$1900", "access$000", "handleReceiver", "_handleMessage", "handleMessage", "dispatchMessage",
             "handleServiceArgs", "loop"};
     private String traceName (String s) {

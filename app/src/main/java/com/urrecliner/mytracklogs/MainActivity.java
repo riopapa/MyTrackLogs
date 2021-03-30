@@ -3,8 +3,6 @@ package com.urrecliner.mytracklogs;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -15,6 +13,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -60,7 +59,7 @@ import static com.urrecliner.mytracklogs.Vars.dummyMap;
 import static com.urrecliner.mytracklogs.Vars.gpsTracker;
 import static com.urrecliner.mytracklogs.Vars.isWalk;
 import static com.urrecliner.mytracklogs.Vars.mContext;
-import static com.urrecliner.mytracklogs.Vars.mainActivity;
+import static com.urrecliner.mytracklogs.Vars.mActivity;
 import static com.urrecliner.mytracklogs.Vars.mapUtils;
 import static com.urrecliner.mytracklogs.Vars.modePaused;
 import static com.urrecliner.mytracklogs.Vars.modeStarted;
@@ -96,18 +95,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
     double totSpeed = 0, totDistance = 0, lowSpeed, highSpeed;
-    boolean click;
+    AlertDialog mainDialog;
 
     ArrayList<LatLng> latLngPos;
     ArrayList<Double> latSVs, lonSVs, latQues, lonQues;
     final int QUE_COUNT = 5;
-    MainDialog mainDialog;
 
 //    @SuppressLint("RestrictedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         mContext = this;
-        mainActivity = this;
+        mActivity = this;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         utils = new Utils();
@@ -125,8 +123,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         llTimeInfo.setVisibility(View.INVISIBLE); llTrackInfo.setVisibility(View.INVISIBLE);
         gpsTracker = new GPSTracker();
         gpsTracker.startGPSUpdate();
-        nowLatitude = gpsTracker.getGpsLatitude();
-        nowLongitude = gpsTracker.getGpsLongitude();
         sharePrefer = getSharedPreferences("myTracks", Context.MODE_PRIVATE);
 
         databaseIO = new DatabaseIO();
@@ -140,8 +136,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (modeStarted) {
                     confirmFinish();
                 } else {
-                    mainDialog = new MainDialog();
-                    mainDialog.show(getFragmentManager(), null);
+                    AlertDialog.Builder mBuilder = new AlertDialog.Builder(mActivity, R.style.Theme_MaterialComponents_Dialog_MinWidth);
+                    LayoutInflater mLayoutInflater = mActivity.getLayoutInflater();
+                    mBuilder.setView(mLayoutInflater.inflate(R.layout.dialog_walk_drive, null));
+                    mainDialog = mBuilder.create();
+                    mainDialog.show();
                 }
             }
         });
@@ -153,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
         fabPauseRestart.hide();
-//        fabPauseRestart.setAlpha(0.2f);
 
         String blank = " ";
         tvStartDate.setText(blank); tvStartTime.setText(blank);
@@ -167,9 +165,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateMarker = new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                Boolean isActive = (msg.what == 0) ? true:false;
                 LatLng latLng = (LatLng) msg.obj;
-                locationChanged(isActive, latLng.latitude, latLng.longitude);
+                locationChanged((msg.what == 0), latLng.latitude, latLng.longitude);
             }
         };
         notifyAction = new Handler() {public void handleMessage(Message msg) { notificationClicked(msg.what); }};
@@ -186,32 +183,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
         updateNotification(ACTION_INIT);
         dummyMap = mapUtils.StringToBitMap(mapUtils.BitMapToString(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)));
+        while (nowLatitude == 0) {
+            SystemClock.sleep(1000);
+            nowLatitude = gpsTracker.getGpsLatitude();
+            nowLongitude = gpsTracker.getGpsLongitude();
+        }
         latLngPos = new ArrayList<>(); latSVs = new ArrayList<>(); lonSVs = new ArrayList<>();
         latQues = new ArrayList<>(); lonQues = new ArrayList<>();
         startLatitude = gpsTracker.getGpsLatitude();
         startLongitude = gpsTracker.getGpsLongitude();
         for (int i = 0; i < QUE_COUNT; i++) { latSVs.add(startLatitude); lonSVs.add(startLongitude); }
         gpsTracker.stopGPSUpdate();
+        utils.deleteOldLogFiles();
+
 //        generateColor();  // generate speedColor table
     }
 
-    public static class MainDialog extends DialogFragment {
-
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            AlertDialog.Builder mBuilder = new AlertDialog.Builder(getActivity(), R.style.Theme_MaterialComponents_Dialog_MinWidth);
-            LayoutInflater mLayoutInflater = getActivity().getLayoutInflater();
-            mBuilder.setView(mLayoutInflater.inflate(R.layout.dialog_walk_drive, null));
-//            mBuilder.setTitle(getString(R.string.walk_drive));
-            return mBuilder.create();
-        }
-
-        @Override
-        public void onStop() {
-            super.onStop();
-        }
-
-    }
     public void start_Walk(View v) {    // start_Walk is called by activity.xml
         isWalk = true;
         lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK;
@@ -268,7 +255,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         stopTrackLog();
         fabGoStop.setImageResource(R.mipmap.button_start);
         fabPauseRestart.hide();
-        utils.deleteOldLogFiles();
         updateNotification(ACTION_STOP);
     }
 
@@ -278,9 +264,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startTime = System.currentTimeMillis();
         beginTime = startTime;
         prevLogTime = startTime;
-//        latLngPos.add(new LatLng(startLatitude, startLongitude));
-//        utils.log(logID, "startLog " + startLatitude + " x " + startLongitude);
-//        latQues.add(startLatitude); lonQues.add(startLongitude);
         dbCount = 0;
         meters = 0; minutes = 0;
         totSpeed = 0; totDistance = 0;
@@ -304,21 +287,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
     }
 
-    double startLat, startLon;
+    double startLat, startLng;
     void stopTrackLog() {
-        startLat = latQues.get(latQues.size()-1); startLon = lonQues.get(lonQues.size()-1);
-        final double smallLat = (gpsTracker.getGpsLatitude() - startLat) / QUE_COUNT;
-        final double smallLon = (gpsTracker.getGpsLongitude() - startLon) / QUE_COUNT;
-        gpsTracker.stopGPSUpdate();
+        double smallLat = 0, smallLon = 0;
+        if (latQues.size() > 10) {
+            startLat = latQues.get(latQues.size() - 1);
+            startLng = lonQues.get(lonQues.size() - 1);
+            smallLat = (gpsTracker.getGpsLatitude() - startLat) / QUE_COUNT;
+            smallLon = (gpsTracker.getGpsLongitude() - startLng) / QUE_COUNT;
+            gpsTracker.stopGPSUpdate();
+        }
+        final double finalSmallLat = smallLat;
+        final double finalSmallLon = smallLon;
         new CountDownTimer(280*QUE_COUNT, 300) {
             public void onTick(long millisUntilFinished) {
-                startLat += smallLat; startLon += smallLon;
+                startLat += finalSmallLat; startLng += finalSmallLon;
 //                utils.log(logID+millisUntilFinished, "queue "+startLat+"x"+startLon);
-                Message msg = updateMarker.obtainMessage(1, new LatLng(startLat, startLon));
+                Message msg = updateMarker.obtainMessage(1, new LatLng(startLat, startLng));
                 updateMarker.sendMessage(msg);
             }
             public void onFinish() {
-                utils.log(logID, "finish "+startLat+"x"+startLon);
+                utils.log(logID, "finish "+startLat+"x"+ startLng);
                 finishTime = System.currentTimeMillis();
                 calcMapScale();
                 mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
@@ -327,7 +316,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) elapsedTime / 60000);
 //                databaseIO.logInsert(finishTime, startLat, startLon);
                 showMarker.drawHereOff();
-                showMarker.drawFinish(startLat, startLon, false);
+                showMarker.drawFinish(startLat, startLng, false);
                 updateNotification(ACTION_UPDATE);
                 updateNotification(ACTION_STOP);
             }
@@ -352,8 +341,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     return;
                 }
             }
-        }
-        else
+        } else
             utils.log("final ", isWalk+ "{forced} Speed " + speed+" XTime "+deltaTime);
         sMaxSpeed = Math.max(sMaxSpeed,speed); sMinSpeed = Math.min(sMinSpeed, speed);
         resetCount = 0;
@@ -393,9 +381,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void adjustPosition() {
-//        int k = QUE_COUNT-2;
-//        latSVs.set(k,(latSVs.get(k)+ latSVs.get(k-1))/2);
-//        lonSVs.set(k,(lonSVs.get(k)+ lonSVs.get(k-1))/2);
         for (int i = 0; i < QUE_COUNT-2; i++) {
             latSVs.set(i+1,((latSVs.get(i)+ latSVs.get(i+2))/2+latSVs.get(i+1))/2);
             lonSVs.set(i+1,((lonSVs.get(i)+ lonSVs.get(i+2))/2+lonSVs.get(i+1))/2);
@@ -404,16 +389,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void calcMapScale() {
         double fullMapDistance = mapUtils.getFullMapDistance(locEast, locWest, locSouth, locNorth);
-//        utils.log(logID," initial distance :"+fullMapDistance);
         mapScale = mapUtils.getMapScale(fullMapDistance);
-//        utils.log(logID, "mapScale >> "+mapScale);
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
         mainMap = googleMap;
-        showMarker.init(mainActivity, googleMap);
+        showMarker.init(mActivity, googleMap);
         nowLatitude = gpsTracker.getGpsLatitude();
         nowLongitude = gpsTracker.getGpsLongitude();
         utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude+" with scale:"+mapScale);
@@ -422,7 +405,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateNotification(ACTION_HIDE_CONFIRM);
     }
 
-    static double latitudeGPS, longitudeGPS;
     static void locationUpdatedByGPSTracker(Double latitude, Double longitude) {
         Message msg = updateMarker.obtainMessage(0, new LatLng(latitude, longitude));
         updateMarker.sendMessage(msg);
@@ -551,7 +533,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void confirmFinish() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
+        AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
         builder.setTitle("Confirm Finish ");
         String s = "Are you sure to finish tracking?";
         builder.setMessage(s);
@@ -583,7 +565,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             float ratio = (float) i / 100;
             if (i%10 == 0)
                 s.append("\n\t\t\t");
-            s.append("0x"+String.format("%06X", animatedColor.with(ratio))+", ");
+            s.append("0x").append(String.format("%06X", animatedColor.with(ratio))).append(", ");
         }
         utils.log(logID,s.toString());
     }
@@ -646,7 +628,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
     }
     private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
-        new android.app.AlertDialog.Builder(mainActivity)
+        new android.app.AlertDialog.Builder(mActivity)
                 .setMessage(message)
                 .setPositiveButton("OK", okListener)
                 .setNegativeButton("Cancel", null)

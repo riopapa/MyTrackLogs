@@ -5,7 +5,7 @@ import android.graphics.Color;
 public class AnimatedColor {
     private final int startColor, endColor;
     private final float[] startHSV, endHSV;
-    private float[] move = new float[3];
+    private final float[] move = new float[3];
 
     AnimatedColor(int start, int end) {
         startColor = start;

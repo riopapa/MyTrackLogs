@@ -5,11 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.util.Base64;
 import android.widget.Toast;
-
-import java.io.ByteArrayOutputStream;
 
 import static com.urrecliner.mytracklogs.Vars.dummyMap;
 import static com.urrecliner.mytracklogs.Vars.mContext;
@@ -22,7 +18,7 @@ class DatabaseIO extends SQLiteOpenHelper {
     private static final String TABLE_LOG = "locationLog";
     private static final String TABLE_TRACK = "track";
     private static final int SCHEMA_VERSION = 1;
-    private static String logID = "dbIO";
+    private static final String logID = "dbIO";
     private static SQLiteDatabase dbIO = null;
     static final String sqlLog = "CREATE TABLE if not exists " + TABLE_LOG + " " +
             "(logTime INTEGER PRIMARY KEY AUTOINCREMENT, " +    // 0

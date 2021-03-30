@@ -1,6 +1,5 @@
 package com.urrecliner.mytracklogs;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -17,10 +16,7 @@ import java.util.Calendar;
 import java.util.Locale;
 
 import static com.urrecliner.mytracklogs.Vars.dummyMap;
-import static com.urrecliner.mytracklogs.Vars.mainActivity;
 import static com.urrecliner.mytracklogs.Vars.searchActivity;
-import static com.urrecliner.mytracklogs.Vars.trackActivity;
-import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class SearchActivity extends AppCompatActivity {
