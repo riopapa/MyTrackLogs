@@ -42,11 +42,11 @@ public class TrackActivity extends AppCompatActivity {
             cursor = databaseIO.trackFromTo();
         } catch (Exception e) {
             if (cursor == null) {
-                Log.w("track"," cursor //");
+                Log.e("track"," cursor null //");
                 databaseIO = new DatabaseIO();
 //                utils.log(logID, "retry to read db");
+                cursor = databaseIO.trackFromTo();
             }
-            cursor = databaseIO.trackFromTo();
         }
         trackAdapter = new TrackAdapter();
         trackView.setAdapter(trackAdapter);
@@ -61,6 +61,7 @@ public class TrackActivity extends AppCompatActivity {
             utils.log("cursor","count ="+cursor.getCount());
             // move cursor to first row
             if (cursor.moveToFirst()) {
+
                 do {
                     long startTime = cursor.getLong(cursor.getColumnIndex("startTime"));
                     long finishTime = cursor.getLong(cursor.getColumnIndex("finishTime"));

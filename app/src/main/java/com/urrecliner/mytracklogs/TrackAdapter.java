@@ -106,7 +106,8 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         viewHolder.tvMeterMinutes.setText(s);
         viewHolder.tvPlaceName.setText(trackLog.getPlaceName());
 
-        int grayed = 240 * position / (trackLogs.size()+1);
+//        int grayed = 240 * position / (trackLogs.size()+1)
+        int grayed = (position % 4) * 10;
         int backColor = ContextCompat.getColor(trackActivity,R.color.logBackground)
                 - grayed - grayed *256 - grayed *256*256;
         viewHolder.viewLine.setBackgroundColor(backColor);

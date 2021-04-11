@@ -18,19 +18,11 @@ class MapUtils {
     private Location locationPrev = new Location("");
     private Location locationNow = new Location("");
 
-    double getFullMapDistance(double locEast, double locWest, double locSouth, double locNorth) {
-        locationPrev.setLatitude(locWest);
-        locationPrev.setLongitude(locNorth);
-        locationNow.setLatitude(locEast);
-        locationNow.setLongitude(locSouth);
-        return locationPrev.distanceTo(locationNow);
-    }
-
-    double getShortDistance(double x1, double y1, double x2, double y2) {
-        locationPrev.setLatitude(x1);
-        locationPrev.setLongitude(y1);
-        locationNow.setLatitude(x2);
-        locationNow.setLongitude(y2);
+    double calcDistance(double lat1, double lng1, double lat2, double lng2) {
+        locationPrev.setLatitude(lat1);
+        locationPrev.setLongitude(lng1);
+        locationNow.setLatitude(lat2);
+        locationNow.setLongitude(lng2);
         return locationPrev.distanceTo(locationNow);
     }
 

@@ -30,7 +30,7 @@ class DatabaseIO extends SQLiteOpenHelper {
             " meters INTEGER, " + // 2
             " minutes INTEGER, " + // 3
             " bitMap LONGTEXT, " + // 4
-            " placeName TEXT );"; // 4
+            " placeName TEXT );"; // 5
 
     DatabaseIO() {
         super(mContext, utils.getPackageDirectory().toString()+ "/" + DATABASE_NAME, null, SCHEMA_VERSION);

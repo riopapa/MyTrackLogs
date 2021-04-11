@@ -2,6 +2,7 @@ package com.urrecliner.mytracklogs;
 
 import android.Manifest;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -12,8 +13,6 @@ import android.os.IBinder;
 
 import androidx.core.app.ActivityCompat;
 
-import static com.urrecliner.mytracklogs.Vars.gpsUpdateTime;
-import static com.urrecliner.mytracklogs.Vars.mContext;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 class GPSTracker extends Service implements LocationListener {
@@ -21,34 +20,36 @@ class GPSTracker extends Service implements LocationListener {
     boolean isGPSEnabled = false;
     boolean isNetworkEnabled = false;
     Location location = null; // Location
-    double gpsLatitude, gpsLongitude;
+    double trackerLat, trackerLng;
     final String logID = "GPS";
-    private static final float MIN_DISTANCE_WALK = 10; // meters
-    private static final long MIN_TIME_WALK_UPDATES = 10000; // miliSecs
+    private static final float MIN_DISTANCE_WALK = 5; // meters
+    private static final long MIN_TIME_WALK_UPDATES = 5000; // miliSecs
     protected LocationManager locationManager;
+    float updateDistance = MIN_DISTANCE_WALK;
+    long updateTime = MIN_TIME_WALK_UPDATES;
+    Context context;
 
-    void startGPSUpdate() {
+    void startGPSUpdate(Context context) {
+        this.context = context;
 
         try {
-            locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
+            locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
             assert locationManager != null;
             isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 
-            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION)
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED)
                 return;
             if (isGPSEnabled) {
                 assert locationManager != null;
                 locationManager.requestLocationUpdates(
-                        LocationManager.GPS_PROVIDER,
-                        MIN_TIME_WALK_UPDATES,
-                        MIN_DISTANCE_WALK, this);
+                        LocationManager.GPS_PROVIDER, updateTime, updateDistance, this);
                 if (locationManager != null) {
                     location = locationManager
                             .getLastKnownLocation(LocationManager.GPS_PROVIDER);
                     if (location != null) {
-                        gpsLatitude = location.getLatitude();
-                        gpsLongitude = location.getLongitude();
+                        trackerLat = location.getLatitude();
+                        trackerLng = location.getLongitude();
                     }
                 }
             }
@@ -62,8 +63,8 @@ class GPSTracker extends Service implements LocationListener {
                     location = locationManager
                             .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                     if (location != null) {
-                        gpsLatitude = location.getLatitude();
-                        gpsLongitude = location.getLongitude();
+                        trackerLat = location.getLatitude();
+                        trackerLng = location.getLongitude();
                     }
                 }
             }
@@ -78,24 +79,15 @@ class GPSTracker extends Service implements LocationListener {
         }
     }
 
-    double getGpsLatitude() { return gpsLatitude; }
-    double getGpsLongitude() { return gpsLongitude; }
+    double getTrackerLat() { return trackerLat; }
+    double getTrackerLng() { return trackerLng; }
 
     @Override
     public void onLocationChanged(Location location) {
         this.location = location;
-//        utils.log("NEW LOCATION ", location.getLatitude()+" x "+location.getLongitude());
-        inform2Main();
-    }
-
-    void inform2Main() {
-        if (location == null) return;
-        gpsLatitude = location.getLatitude();
-        gpsLongitude = location.getLongitude();
-        gpsUpdateTime = System.currentTimeMillis();
-//        long nowTime = System.currentTimeMillis();
-//        prevTime = nowTime;
-        MainActivity.locationUpdatedByGPSTracker(gpsLatitude, gpsLongitude);
+        trackerLat = location.getLatitude();
+        trackerLng = location.getLongitude();
+        MainActivity.locationUpdatedByGPSTracker(trackerLat, trackerLng);
     }
 
     @Override

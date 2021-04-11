@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.widget.ImageView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,7 +21,7 @@ class Vars {
     static Utils utils;
     static DatabaseIO databaseIO;
     static GPSTracker gpsTracker;
-    static long gpsUpdateTime = 0;
+//    static long gpsUpdateTime = 0;
     static MapUtils mapUtils;
     static ShowMarker showMarker;
     static RecyclerView trackView;
@@ -61,6 +62,22 @@ class Vars {
     static final int NOTIFICATION_BAR_NO_CONTINUE = 88;
     static final int NOTIFICATION_BAR_SHOW_CONFIRM = 90;
     static final int NOTIFICATION_BAR_HIDE_CONFIRM = 91;
+
+    /*
+generate static color table speedColor index value (only if color table change is required)
+ */
+    void generateColor() {
+        AnimatedColor animatedColor = new AnimatedColor(Color.rgb(0,152,0), Color.rgb(152,0,0));
+        StringBuilder s = new StringBuilder();
+        s.append("\n");
+        for (int i = 0; i < 100; i++) {
+            float ratio = (float) i / 100;
+            if (i%8 == 0)
+                s.append("\n\t\t\t");
+            s.append("0x").append(String.format("%06X", animatedColor.with(ratio))).append(", ");
+        }
+        utils.log("color",s.toString());
+    }
 
     static int [] speedColor = {
             0xFF009800, 0xFF039800, 0xFF069800, 0xFF099800, 0xFF0C9800, 0xFF0F9800, 0xFF129800, 0xFF159800, 0xFF189800, 0xFF1B9800,
