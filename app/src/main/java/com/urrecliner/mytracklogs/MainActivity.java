@@ -75,9 +75,9 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     final static String logID = "Main";
-    final double LOW_SPEED_WALK = 50f, LOW_SPEED_DRIVE = 300f;
-    final double HIGH_SPEED_WALK = 2000f, HIGH_SPEED_DRIVE = 60000f;
-    final double HIGH_DISTANCE_WALK = 50f, HIGH_DISTANCE_DRIVE = 1200f;
+    final double LOW_SPEED_WALK = 20f, HIGH_SPEED_WALK = 2000f;
+    final double LOW_SPEED_DRIVE = 200f, HIGH_SPEED_DRIVE = 60000f;
+    final double HIGH_DISTANCE_WALK = 500f, HIGH_DISTANCE_DRIVE = 12000f;
     private static Handler updateMarker, notifyAction;
     FloatingActionButton fabGoStop, fabPauseRestart;
     long prevLogTime, elapsedTime;
@@ -100,7 +100,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     ArrayList<LatLng> latLngPos;
     ArrayList<Double> latSVs, lngSVs, latQues, lonQues;
     final int QUE_COUNT = 5;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fabPauseRestart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                pauseRestart_Clicked();
+                RestartClicked();
             }
         });
         fabPauseRestart.hide();
@@ -195,37 +194,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         for (int i = 0; i < QUE_COUNT; i++) { latSVs.add(startLat); lngSVs.add(startLng); }
         gpsTracker.stopGPSUpdate();
         utils.deleteOldLogFiles();
-
-//        utils.generateColor();  // generate speedColor table
     }
 
-    public void start_Walk(View v) {    // start_Walk is called by activity.xml
+    public void WalkClicked(View v) {    // start_Walk is called by activity.xml
         isWalk = true;
         lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK; highDistance = HIGH_DISTANCE_WALK;
         mainDialog.dismiss();
         go_Clicked();
     }
 
-    public void start_Drive(View v) {
+    public void DriveClicked(View v) {
         isWalk = false;
         lowSpeed = LOW_SPEED_DRIVE; highSpeed = HIGH_SPEED_DRIVE; highDistance = HIGH_DISTANCE_DRIVE;
         mainDialog.dismiss();
         go_Clicked();
     }
 
-//    @SuppressLint("RestrictedApi")
-    void go_Clicked() {
-        modeStarted = true;
-        modePaused = false;
-        gpsTracker.stopGPSUpdate();
-
-        beginTrackLog();
-        fabGoStop.setImageResource(R.mipmap.button_stop);
-        fabPauseRestart.show();
-        updateNotification(ACTION_START);
-    }
-
-    void pauseRestart_Clicked() {
+    void RestartClicked() {
         if (modeStarted) {
             if (modePaused) {      // already paused, let restart
                 modePaused = false;
@@ -246,19 +231,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    void finish_tracking() {
+    void go_Clicked() {
+        modeStarted = true;
+        modePaused = false;
+        gpsTracker.stopGPSUpdate();
+        TrackLogStart();
+        fabGoStop.setImageResource(R.mipmap.button_stop);
+        fabPauseRestart.show();
+        updateNotification(ACTION_START);
+    }
+
+    void finishTrackLog() {
         modeStarted = false;
         modePaused = false;
         utils.log(logID,"--- Finish Tracking ---");
         utils.log(logID,"avrDist="+(totDistance)/dbCount+", avr speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
         utils.log("minMax", " sMaxSpeed="+ sMaxSpeed +" sMinSpeed="+ sMinSpeed);
-        stopTrackLog();
+        TrackLogStop();
         fabGoStop.setImageResource(R.mipmap.button_start);
         fabPauseRestart.hide();
         updateNotification(ACTION_STOP);
     }
 
-    void beginTrackLog() {
+    void TrackLogStart() {
         mainMap.clear();
         gpsTracker.startGPSUpdate(getApplicationContext());
         startTime = System.currentTimeMillis();
@@ -281,13 +276,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         showMarker.drawStart(startLat, startLng, false);
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
-        utils.log("SPEED range","lowSpeed="+lowSpeed+" hiSeed="+highSpeed);
+        utils.log("SPEED range","lowSpeed="+lowSpeed+" hiSeed="+highSpeed+", hiDist="+highDistance);
         databaseIO.trackInsert(startTime);
         databaseIO.logInsert(startTime, 0, 0);
         locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
     }
 
-    void stopTrackLog() {
+    void TrackLogStop() {
         updateNotification(ACTION_UPDATE);
         updateNotification(ACTION_STOP);
         gpsTracker.stopGPSUpdate();
@@ -426,7 +421,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 go_Clicked();
                 break;
             case NOTIFICATION_BAR_PAUSE_RESTART: // PAUSE_RESTART
-                pauseRestart_Clicked();
+                RestartClicked();
                 break;
             case NOTIFICATION_BAR_SHOW_CONFIRM:
                 updateNotification(ACTION_SHOW_CONFIRM);
@@ -440,7 +435,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case NOTIFICATION_BAR_CONFIRMED_STOP:
                 updateNotification(ACTION_INIT);
-                finish_tracking();
+                finishTrackLog();
                 break;
             default:
                 utils.log(logID, "/// Touch Code error "+operation);
