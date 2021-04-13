@@ -201,7 +201,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void start_Walk(View v) {    // start_Walk is called by activity.xml
         isWalk = true;
-        lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK;
+        lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK; highDistance = HIGH_DISTANCE_WALK;
         mainDialog.dismiss();
         go_Clicked();
     }
@@ -312,7 +312,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
                         (float) mapScale - 0.15f));
                 elapsedTime = minutes + finishTime - beginTime;
-                databaseIO.trackUpdate(startTime, finishTime, (int) meters, (int) elapsedTime / 60000);
+                databaseIO.trackUpdate(startTime, finishTime, (isWalk) ? 0:1, (int) meters, (int) elapsedTime / 60000);
 //                databaseIO.logInsert(finishTime, startLat, startLon);
                 showMarker.drawHereOff();
                 showMarker.drawFinish(startLat, startLng, false);
@@ -333,12 +333,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (speed > (highSpeed + highSpeed) || distance > highDistance) {
             utils.log("High Speed", isWalk + "{Too BAD} Speed= " + speed + " XTime= " + deltaTime+", Dist= "+distance);
+            prevLatitude = latitude; prevLongitude = longitude;
             return;
         }
         if (isActive) {
             if (speed < lowSpeed || speed > highSpeed) {
                 if (resetCount++ < 5) {
                     utils.log("Count " + resetCount, isWalk + "{BAD} " + resetCount + " Speed " + speed + " XTime " + deltaTime);
+                    prevLatitude = latitude; prevLongitude = longitude;
                     return;
                 }
             }
@@ -367,10 +369,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (color > 100) color = 100; if(color < 0) color = 0;
         color = speedColor[color];
         drawTrackLogs(color);
-        meters += mapUtils.calcDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude) * 1.1f;
+        meters += mapUtils.calcDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude);
         if (dbCount > (QUE_COUNT-2)) {
             databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);
-            databaseIO.trackUpdate(startTime, nowTime, (int) meters, (int) elapsedTime / 60000);
+            databaseIO.trackUpdate(startTime, nowTime, (isWalk) ? 0:1, (int) meters, (int) elapsedTime / 60000);
         }
         s = decimalComma.format(meters) + "m /" + dbCount;
         tvMeter.setText(s);
@@ -558,8 +560,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
     }
-
-
 
 
     // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓

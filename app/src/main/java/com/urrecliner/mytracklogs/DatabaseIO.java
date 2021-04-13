@@ -27,10 +27,11 @@ class DatabaseIO extends SQLiteOpenHelper {
     static final String sqlTrack = "CREATE TABLE if not exists " + TABLE_TRACK + " " +
             "(startTime INTEGER PRIMARY KEY AUTOINCREMENT, " +    // 0
             " finishTime INTEGER, " + // 1
-            " meters INTEGER, " + // 2
-            " minutes INTEGER, " + // 3
-            " bitMap LONGTEXT, " + // 4
-            " placeName TEXT );"; // 5
+            " walkDrive INTEGER, " + // 2
+            " meters INTEGER, " + // 3
+            " minutes INTEGER, " + // 4
+            " bitMap LONGTEXT, " + // 5
+            " placeName TEXT );"; // 6
 
     DatabaseIO() {
         super(mContext, utils.getPackageDirectory().toString()+ "/" + DATABASE_NAME, null, SCHEMA_VERSION);
@@ -53,18 +54,20 @@ class DatabaseIO extends SQLiteOpenHelper {
         ContentValues cv = new ContentValues();
         cv.put("startTime", startTime);
         cv.put("finishTime", startTime);
+        cv.put("walkDrive", 0); // 0 : walk, 1: drive
         cv.put("meters", 0);
         cv.put("minutes", 0);
         cv.put("bitMap", mapString);
         dbIO.insert(TABLE_TRACK, null, cv);
     }
 
-    void trackUpdate(long startTime, long finishTime, int meters, int minutes) {
+    void trackUpdate(long startTime, long finishTime, int walkDrive, int meters, int minutes) {
         if (dbIO == null)
             dbIO = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put("startTime", startTime);
         cv.put("finishTime", finishTime);
+        cv.put("walkDrive", walkDrive);
         cv.put("meters", meters);
         cv.put("minutes", minutes);
         try {
@@ -74,11 +77,12 @@ class DatabaseIO extends SQLiteOpenHelper {
         }
     }
 
-    void trackMapPlaceUpdate(long startTime, Bitmap bitmap, String placeName ) {
+    void trackMapPlaceUpdate(long startTime, long totDistance, Bitmap bitmap, String placeName ) {
         if (dbIO == null)
             dbIO = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put("startTime", startTime);
+        cv.put("meters", totDistance);
         cv.put("bitMap", mapUtils.BitMapToString(bitmap));
         cv.put("placeName", placeName);
         try {

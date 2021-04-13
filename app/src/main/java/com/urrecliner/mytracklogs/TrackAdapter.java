@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.text.DecimalFormat;
 
 import static com.urrecliner.mytracklogs.Vars.dummyMap;
+import static com.urrecliner.mytracklogs.Vars.isWalk;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
@@ -33,6 +34,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         TextView tvStartFinish, tvMeterMinutes, tvPlaceName;
         ImageView ivBitmap;
         View viewLine;
+        boolean isWalk;
 
         TrackViewHolder(View view) {
             super(view);
@@ -98,12 +100,13 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
         String s;
         TrackLog trackLog = trackLogs.get(position);
-        s = utils.long2DateDay(trackLog.getStartTime())+"\n"+utils.long2Time(trackLog.getStartTime())+"~"+
-                utils.long2Time(trackLog.getFinishTime());
+        s = utils.long2DateDay(trackLog.getStartTime())+
+                "\n"+utils.long2Time(trackLog.getStartTime())+"~" + utils.long2Time(trackLog.getFinishTime());
         viewHolder.tvStartFinish.setText(s);
         DecimalFormat decimalFormat = new DecimalFormat("##,###,###");
-        s = decimalFormat.format(trackLog.getMeters())+"m\n"+utils.minute2Text(trackLog.getMinutes());
-        viewHolder.tvMeterMinutes.setText(s);
+        s = decimalFormat.format(trackLog.getMeters())+ "m" +
+                "\n"+utils.minute2Text(trackLog.getMinutes()) + ((trackLog.getWalkDrive() == 0) ? " W ":" D");
+                viewHolder.tvMeterMinutes.setText(s);
         viewHolder.tvPlaceName.setText(trackLog.getPlaceName());
 
 //        int grayed = 240 * position / (trackLogs.size()+1)

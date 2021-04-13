@@ -11,6 +11,7 @@ import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.location.Geocoder;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -42,13 +43,15 @@ import static com.urrecliner.mytracklogs.Vars.trackAdapter;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.trackPosition;
 import static com.urrecliner.mytracklogs.Vars.utils;
+import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private final String logID = "Map";
-    private static final int POLYLINE_STROKE_WIDTH_PX = 8;
+    private static final int POLYLINE_STROKE_WIDTH_PX_WALK = 8;
+    private static final int POLYLINE_STROKE_WIDTH_PX_DRIVE = 16;
     private static final int PATTERN_DASH_LENGTH_PX = 6;
     private static final int PATTERN_GAP_LENGTH_PX = 6;
 //    private static final PatternItem DOT = new Dot();
@@ -59,9 +62,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private String resultAddress;
     double locSouth, locNorth, locWest, locEast;
     private Activity mapActivity;
-    private long startTime, finishTime, timeBegin;
-    private float timeDiff;
-    private int iMinutes, iMeters, iconWidth, iconHeight;
+    private long startTime;
+    private long finishTime;
+    private int iMinutes, iWalkDrive, iMeters, iconWidth, iconHeight;
     double lowSpeed, highSpeed, speed;
     ArrayList<LatLng> lineFromToLatLng;
     ArrayList<LocLog> locLogs;
@@ -70,10 +73,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     ArrayList<String[]> places;
     Geocoder geocoder;
     GPS2Address gps2Address;
+    int polyWidth;
+    double totDistance = 0;
 
     static class LocLog {
-        private long logTime;
-        private double latitude, longitude, speed;
+        long logTime;
+        double latitude, longitude, speed;
 
         LocLog(long logTime, double latitude, double longitude, double speed) {
             this.logTime = logTime;
@@ -97,6 +102,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         TrackLog trackLog = getIntent().getParcelableExtra("trackLog");
         startTime = trackLog.getStartTime();
         finishTime = trackLog.getFinishTime();
+        iWalkDrive = trackLog.getWalkDrive();
         iMinutes = trackLog.getMinutes();
         iMeters = trackLog.getMeters();
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -113,14 +119,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         });
     }
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
         thisMap = googleMap;
-        places= new ArrayList<String[]>();
+        places= new ArrayList<>();
         if (showMarker == null)
             showMarker = new ShowMarker();
+        polyWidth = (iWalkDrive == 0)? POLYLINE_STROKE_WIDTH_PX_WALK : POLYLINE_STROKE_WIDTH_PX_DRIVE;
         showMarker.init(mapActivity, googleMap);
         String s = "";
         if (retrieveDBLog()) return;
@@ -131,11 +137,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 (float) mapScale - 0.1f));
         s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~ "+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
         tvTimeInfo.setText(s);
-        timeBegin =  locLogs.get(0).logTime;
-        timeDiff = locLogs.get(locLogs.size()-1).logTime - locLogs.get(0).logTime;
-        utils.log("Veryf trackPos",trackPosition+" ```");
         if (iMinutes > 0) {
-            s = utils.minute2Text(iMinutes) + "  " + decimalComma.format(iMeters) + "m";
+            s = utils.minute2Text(iMinutes) + ((iWalkDrive == 0)? " W  ":" D  ") + decimalComma.format(iMeters) + "m";
             tvLogInfo.setText(s);
         }
         else
@@ -201,14 +204,24 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         lineFromToLatLng.add(new LatLng(0,0));
         Bitmap triangleMap = BitmapFactory.decodeResource(getResources(), R.mipmap.triangle);
         CustomCap customCap;
+        totDistance = 0;
+        double distance, maxDistance = 0, maxSpeed = 0;
         int color = speedColor[0], j = -1;
         for (int i = 0; i < locLogs.size()-2; i++) {
-//            double distance = mapUtils.calcDistance(locLogs.get(i).latitude, locLogs.get(i).longitude,locLogs.get(i+1).latitude, locLogs.get(i+1).longitude);
-//            double speed = distance / (double)(locLogs.get(i+1).logTime-locLogs.get(i).logTime) * 60000f;
-//
+            if (i == 0)
+                distance = 0;
+            else
+                distance = mapUtils.calcDistance(locLogs.get(i).latitude, locLogs.get(i).longitude,locLogs.get(i+1).latitude, locLogs.get(i+1).longitude);
+            totDistance += distance;
+            if (maxDistance < distance)
+                maxDistance = distance;
+            double speed = distance / (double)(locLogs.get(i+1).logTime-locLogs.get(i).logTime) * 60000f;
+            if (speed > maxSpeed)
+                maxSpeed = speed;
+//            utils.log("totDistance",i+""+totDistance+" maxDist="+maxDistance+" maxSpeed="+maxSpeed);
 //            utils.log("locLogs^",i+", "+locLogs.get(i).speed+", "+speed+", "+distance+", "+locLogs.get(i).latitude+", "+locLogs.get(i).longitude);
             PolylineOptions polyOptions = new PolylineOptions();
-            polyOptions.width(POLYLINE_STROKE_WIDTH_PX);
+            polyOptions.width(polyWidth);
             if (locLogs.get(i).speed == -1) {
                 utils.log("i is -1"," this is zero "+i);
                 lineFromToLatLng.set(0, new LatLng(locLogs.get(i + 1).latitude, locLogs.get(i + 1).longitude));
@@ -242,6 +255,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             polyOptions.color(color);
             googleMap.addPolyline(polyOptions);
         }
+        utils.log("RESULT","MaxDistance is "+maxDistance+" maxspeed = "+maxSpeed);
 
         showMarker.drawStart(locLogs.get(0).latitude, locLogs.get(0).longitude, false);
         showMarker.drawFinish(locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude, false);
@@ -353,11 +367,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             trackMap = filterBitmap(pureMap, Bitmap.createScaledBitmap(snapshot, iconWidth, iconHeight, false));
             ImageView iv = findViewById(R.id.smallMap);
             iv.setImageBitmap(trackMap);
+            String s = utils.minute2Text(iMinutes) + ((iWalkDrive == 0)? " W  ":" D  ") +
+                    decimalComma.format((int) totDistance) + "m";
+            tvLogInfo.setText(s);
             TrackLog trackLog = trackLogs.get(trackPosition);
             trackLog.setBitMap(trackMap);
             trackLog.setPlaceName(resultAddress);
+            trackLog.setMeters((int) totDistance);
             trackLogs.set(trackPosition, trackLog);
-            databaseIO.trackMapPlaceUpdate(trackLog.getStartTime(), trackMap, resultAddress);
+            databaseIO.trackMapPlaceUpdate(trackLog.getStartTime(), (int) totDistance, trackMap, resultAddress);
             trackAdapter.notifyItemChanged(trackPosition, trackLog);
         }
     };

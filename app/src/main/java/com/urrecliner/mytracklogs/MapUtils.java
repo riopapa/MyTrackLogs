@@ -23,7 +23,7 @@ class MapUtils {
         locationPrev.setLongitude(lng1);
         locationNow.setLatitude(lat2);
         locationNow.setLongitude(lng2);
-        return locationPrev.distanceTo(locationNow);
+        return locationPrev.distanceTo(locationNow) * 1.1f;
     }
 
     int getMapScale(double fullMapDistance) {

@@ -65,11 +65,12 @@ public class TrackActivity extends AppCompatActivity {
                 do {
                     long startTime = cursor.getLong(cursor.getColumnIndex("startTime"));
                     long finishTime = cursor.getLong(cursor.getColumnIndex("finishTime"));
+                    int walkDrive = cursor.getInt(cursor.getColumnIndex("walkDrive"));
                     int meters = cursor.getInt(cursor.getColumnIndex("meters"));
                     int minutes = cursor.getInt(cursor.getColumnIndex("minutes"));
                     Bitmap bitmap = mapUtils.StringToBitMap(cursor.getString(cursor.getColumnIndex("bitMap")));
                     String placeName = cursor.getString(cursor.getColumnIndex("placeName"));
-                    trackLogs.add(new TrackLog(startTime, finishTime, meters, minutes, bitmap, placeName));
+                    trackLogs.add(new TrackLog(startTime, finishTime, walkDrive, meters, minutes, bitmap, placeName));
                 } while (cursor.moveToNext());
             }
             cursor.close();

@@ -168,7 +168,6 @@ public class NotificationService extends Service {
                 mRemoteViews = null;
                 return START_NOT_STICKY;
         }
-        startForeground(111, mBuilder.build());
         return START_STICKY;
     }
 
