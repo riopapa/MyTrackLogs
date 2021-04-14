@@ -2,20 +2,14 @@ package com.urrecliner.mytracklogs;
 
 
 import android.app.ActivityManager;
-import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.IBinder;
-import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
@@ -130,7 +124,7 @@ public class NotificationService extends Service {
                 break;
             case ACTION_START:
             case ACTION_RESTART:
-                mBuilder.setSmallIcon((isWalk)? R.mipmap.foot_mini: R.mipmap.drive);
+                mBuilder.setSmallIcon((isWalk)? R.mipmap.footprint_mini : R.mipmap.drive);
                 mRemoteViews.setImageViewResource(R.id.nTrackIcon, (isWalk) ? R.mipmap.footprint: R.mipmap.drive);
                 mRemoteViews.setImageViewResource(R.id.nGoStop, R.mipmap.button_stop);
                 mRemoteViews.setImageViewResource(R.id.nPause, R.mipmap.button_pause);
@@ -168,6 +162,7 @@ public class NotificationService extends Service {
                 mRemoteViews = null;
                 return START_NOT_STICKY;
         }
+        startForeground(111, mBuilder.build());
         return START_STICKY;
     }
 

@@ -1,7 +1,6 @@
 package com.urrecliner.mytracklogs;
 
 import android.app.Activity;
-import android.graphics.Point;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -14,9 +13,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.List;
 
 class ShowMarker {
 
@@ -127,7 +124,7 @@ class ShowMarker {
                             thisMap.addPolyline(polyOptions);
                         }
                         endCap = new CustomCap(
-                                (isWalk) ? BitmapDescriptorFactory.fromResource(R.mipmap.foot_mini) :
+                                (isWalk) ? BitmapDescriptorFactory.fromResource(R.mipmap.footprint_mini) :
                                         BitmapDescriptorFactory.fromResource(R.mipmap.drive_mini), 6);
                         polyOptions = new PolylineOptions();
                         polyOptions.width(POLYLINE_STROKE_WIDTH_PX);

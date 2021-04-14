@@ -6,6 +6,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -13,6 +14,7 @@ import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -75,7 +77,7 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     final static String logID = "Main";
-    final double LOW_SPEED_WALK = 20f, HIGH_SPEED_WALK = 2000f;
+    final double LOW_SPEED_WALK = 20f, HIGH_SPEED_WALK = 2500f;
     final double LOW_SPEED_DRIVE = 200f, HIGH_SPEED_DRIVE = 60000f;
     final double HIGH_DISTANCE_WALK = 500f, HIGH_DISTANCE_DRIVE = 12000f;
     private static Handler updateMarker, notifyAction;
@@ -85,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Intent serviceIntent;
     LinearLayout llTimeInfo, llTrackInfo;
     double locSouth, locNorth, locWest, locEast;
-    int mapScale = 17;
+    int mapScale = -1;
 
     GoogleMap mainMap;
     Polyline markLines = null;
@@ -110,8 +112,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         utils = new Utils();
         mapUtils = new MapUtils();
         showMarker = new ShowMarker();
-
+//        Vars.generateColor(); // only when want to generate color table from low speed to high speed
         askPermission();
+    }
+
+    void initiate() {
 
         markerLatLng = new ArrayList<>(); markerLatLng.add(new LatLng(0,0)); markerLatLng.add(new LatLng(0,0));
         tvStartDate = findViewById(R.id.startDate);
@@ -194,8 +199,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         for (int i = 0; i < QUE_COUNT; i++) { latSVs.add(startLat); lngSVs.add(startLng); }
         gpsTracker.stopGPSUpdate();
         utils.deleteOldLogFiles();
-    }
 
+    }
     public void WalkClicked(View v) {    // start_Walk is called by activity.xml
         isWalk = true;
         lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK; highDistance = HIGH_DISTANCE_WALK;
@@ -287,16 +292,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateNotification(ACTION_STOP);
         gpsTracker.stopGPSUpdate();
 
+        if (latQues.size() < 10)
+            return;
         startLat = latQues.get(latQues.size() - 1);
         startLng = lonQues.get(lonQues.size() - 1);
-        final double dLat = (gpsTracker.getTrackerLat() - startLat) / QUE_COUNT;;
+        final double dLat = (gpsTracker.getTrackerLat() - startLat) / QUE_COUNT;
         final double dLng = (gpsTracker.getTrackerLng() - startLng) / QUE_COUNT;
         if (latQues.size() < 10)
             return;
-        new CountDownTimer(180*QUE_COUNT, 200) {
+        new CountDownTimer(180*QUE_COUNT, 100) {
             public void onTick(long millisUntilFinished) {
                 startLat += dLat; startLng += dLng;
-//                utils.log(logID+millisUntilFinished, "queue "+startLat+"x"+startLon);
                 Message msg = updateMarker.obtainMessage(1, new LatLng(startLat, startLng));
                 updateMarker.sendMessage(msg);
             }
@@ -308,7 +314,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         (float) mapScale - 0.15f));
                 elapsedTime = minutes + finishTime - beginTime;
                 databaseIO.trackUpdate(startTime, finishTime, (isWalk) ? 0:1, (int) meters, (int) elapsedTime / 60000);
-//                databaseIO.logInsert(finishTime, startLat, startLon);
                 showMarker.drawHereOff();
                 showMarker.drawFinish(startLat, startLng, false);
             }
@@ -327,20 +332,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double speed = distance / (double)deltaTime * 1000f * 60f;
 
         if (speed > (highSpeed + highSpeed) || distance > highDistance) {
-            utils.log("High Speed", isWalk + "{Too BAD} Speed= " + speed + " XTime= " + deltaTime+", Dist= "+distance);
+            utils.log("Bad Speed", isWalk + "{Too BAD} Speed = " + speed + " dTime = " + deltaTime+", Dist = "+distance);
             prevLatitude = latitude; prevLongitude = longitude;
             return;
         }
         if (isActive) {
             if (speed < lowSpeed || speed > highSpeed) {
-                if (resetCount++ < 5) {
-                    utils.log("Count " + resetCount, isWalk + "{BAD} " + resetCount + " Speed " + speed + " XTime " + deltaTime);
+                if (resetCount++ < 10) {
+                    utils.log("Count " + resetCount, isWalk + "{BAD} " + resetCount + " Speed = " + speed + " dTime = " + deltaTime);
                     prevLatitude = latitude; prevLongitude = longitude;
                     return;
                 }
             }
         } else
-            utils.log("final ", isWalk+ "{forced} Speed " + speed+" XTime "+deltaTime);
+            utils.log("final ", isWalk+ "{forced} Speed " + speed+" dTime "+deltaTime);
         nowLatitude = latitude; nowLongitude = longitude;
         sMaxSpeed = Math.max(sMaxSpeed,speed); sMinSpeed = Math.min(sMinSpeed, speed);
         resetCount = 0;
@@ -360,7 +365,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         latQues.add(nowLatitude); lonQues.add(nowLongitude);
         int color = (int) ((speed-lowSpeed)/highSpeed*100);
-//        utils.log(logID, "cidx="+color+" speed="+speed+" dist="+distance+" delta="+deltaTime);
         if (color > 100) color = 100; if(color < 0) color = 0;
         color = speedColor[color];
         drawTrackLogs(color);
@@ -556,30 +560,46 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
     }
 
+    void reDrawMap() {
+        if (locNorth > -90) {
+            calcMapScale();
+            mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                    new LatLng((locNorth + locSouth) / 2, (locEast + locWest) / 2), (float) mapScale - 0.15f));
+        }
+    }
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mapScale == -1)
+            initiate();
+        else
+            reDrawMap();
+    }
 
     // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓
-    ArrayList<String> permissions = new ArrayList<>();
     private final static int ALL_PERMISSIONS_RESULT = 101;
     ArrayList permissionsToRequest;
     ArrayList<String> permissionsRejected = new ArrayList<>();
+    String [] permissions;
 
     private void askPermission() {
-        permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
-        permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
-        permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        permissions.add(Manifest.permission.ACCESS_NOTIFICATION_POLICY);
-        permissions.add(Manifest.permission.RECEIVE_BOOT_COMPLETED);
-        permissionsToRequest = findUnAskedPermissions(permissions);
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(getApplicationContext().getPackageName(), PackageManager.GET_PERMISSIONS);
+            permissions = info.requestedPermissions;//This array contain
+        } catch (Exception e) {
+            Log.e("Permission", "No Permission "+e.toString());
+        }
+
+        permissionsToRequest = findUnAskedPermissions();
         if (permissionsToRequest.size() != 0) {
             requestPermissions((String[]) permissionsToRequest.toArray(new String[0]),
                     ALL_PERMISSIONS_RESULT);
         }
     }
 
-    private ArrayList findUnAskedPermissions(@NonNull ArrayList<String> wanted) {
-        ArrayList <String> result = new ArrayList<>();
-        for (String perm : wanted) if (hasPermission(perm)) result.add(perm);
+    private ArrayList findUnAskedPermissions() {
+        ArrayList <String> result = new ArrayList<String>();
+        for (String perm : permissions) if (hasPermission(perm)) result.add(perm);
         return result;
     }
     private boolean hasPermission(@NonNull String permission) {
@@ -587,7 +607,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == ALL_PERMISSIONS_RESULT) {
             for (Object perms : permissionsToRequest) {
                 if (hasPermission((String) perms)) {

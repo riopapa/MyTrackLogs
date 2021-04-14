@@ -42,6 +42,7 @@ class TrackLog implements Parcelable {
         dest.writeLong(startTime);
         dest.writeLong(finishTime);
         dest.writeInt(walkDrive);
+        dest.writeInt(meters);
         dest.writeInt(minutes);
         dest.writeParcelable(bitMap, flags);
         dest.writeString(placeName);
@@ -50,8 +51,8 @@ class TrackLog implements Parcelable {
     private void readFromParcel(Parcel src) {
         this.startTime = src.readLong();
         this.finishTime = src.readLong();
-        this.meters = src.readInt();
         this.walkDrive = src.readInt();
+        this.meters = src.readInt();
         this.minutes = src.readInt();
         this.bitMap = src.readParcelable(Bitmap.class.getClassLoader());
         this.placeName = src.readString();

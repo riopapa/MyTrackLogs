@@ -50,8 +50,8 @@ import static java.lang.Math.min;
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private final String logID = "Map";
-    private static final int POLYLINE_STROKE_WIDTH_PX_WALK = 8;
-    private static final int POLYLINE_STROKE_WIDTH_PX_DRIVE = 16;
+    private static final int POLYLINE_STROKE_WIDTH_PX_WALK = 12;
+    private static final int POLYLINE_STROKE_WIDTH_PX_DRIVE = 18;
     private static final int PATTERN_DASH_LENGTH_PX = 6;
     private static final int PATTERN_GAP_LENGTH_PX = 6;
 //    private static final PatternItem DOT = new Dot();
@@ -133,8 +133,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         geocoder = new Geocoder(this, Locale.getDefault());
         double fullMapDistance = mapUtils.calcDistance(locSouth, locEast, locNorth, locWest);
         int mapScale = mapUtils.getMapScale(fullMapDistance);
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
-                (float) mapScale - 0.1f));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2), (float) mapScale - 0.1f));
         s = utils.long2DateDayTime(locLogs.get(0).logTime)+" ~ "+utils.long2DateDayTime(locLogs.get(locLogs.size()-1).logTime)+"   ";
         tvTimeInfo.setText(s);
         if (iMinutes > 0) {
@@ -244,8 +243,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 places.add(gps2Address.getPlace(geocoder, locLogs.get(i).latitude, locLogs.get(i).longitude));
             }
             else {
-                color = speedColor[(int) ((locLogs.get(i).speed - lowSpeed) / highSpeed * 100)];
-                Bitmap capColormap = changeBitmapColor(triangleMap, (color > 20) ? color-20: color);
+                color = (int) ((speed-lowSpeed)/highSpeed*100);
+                if (color > 100) color = 100; if(color < 0) color = 0;
+                color = speedColor[color];
+                int capColor = color ^ 0x444444;
+                Bitmap capColormap = changeBitmapColor(triangleMap, capColor);
                 customCap = new CustomCap(BitmapDescriptorFactory.fromBitmap(capColormap), 20);
                 polyOptions.endCap(customCap);
                 lineFromToLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));

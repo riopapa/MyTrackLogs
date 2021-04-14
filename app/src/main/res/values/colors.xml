@@ -6,19 +6,15 @@
     <color name="colorAccent">#03DAC5</color>
 
     <color name="information">#0b8c40</color>
-    <color name="nowDateTime">#03DAC5</color>
-    <color name="startDateTime">#F3CAC5</color>
     <color name="mainScreen">#F3EAE5</color>
-    <color name="currInfo">#A3BAA5</color>
     <color name="trackRoute">#03DAC5</color>
     <color name="logColorFore">#FF001493</color>
     <color name="logColorBack">#66B1ADAD</color>
     <color name="logBackground">#EAEBED</color>
     <color name="trackActive">#aa5B4157</color>
-    <color name="nowBackground">#88445566</color>
-    <color name="startBackground">#66AA5555</color>
     <color name="notifyBar">#ffaBc1a7</color>
     <color name="notifyText">#FF001443</color>
-    <color name="logList">#FF331443</color>
+    <color name="colorLow">#00FF00</color>
+    <color name="colorHigh">#FF0000</color>
 
 </resources>
