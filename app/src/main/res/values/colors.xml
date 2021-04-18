@@ -14,7 +14,7 @@
     <color name="trackActive">#aa5B4157</color>
     <color name="notifyBar">#ffaBc1a7</color>
     <color name="notifyText">#FF001443</color>
-    <color name="colorLow">#00FF00</color>
-    <color name="colorHigh">#FF0000</color>
+    <color name="colorLow">#6C0505</color>
+    <color name="colorHigh">#07F607</color>
 
 </resources>

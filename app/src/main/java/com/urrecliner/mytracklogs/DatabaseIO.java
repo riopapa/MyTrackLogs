@@ -96,7 +96,7 @@ class DatabaseIO extends SQLiteOpenHelper {
         if (dbIO == null)
             dbIO = this.getWritableDatabase();
         dbIO.delete(TABLE_TRACK, "startTime = ?", new String[]{String.valueOf(startTime)});
-        utils.log("Delete",""+startTime);
+//        utils.log("Delete",""+startTime);
     }
 
     Cursor trackFromTo() {

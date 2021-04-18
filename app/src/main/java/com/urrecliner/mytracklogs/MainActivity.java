@@ -48,6 +48,12 @@ import static com.urrecliner.mytracklogs.Vars.ACTION_SHOW_CONFIRM;
 import static com.urrecliner.mytracklogs.Vars.ACTION_START;
 import static com.urrecliner.mytracklogs.Vars.ACTION_STOP;
 import static com.urrecliner.mytracklogs.Vars.ACTION_UPDATE;
+import static com.urrecliner.mytracklogs.Vars.HIGH_DISTANCE_DRIVE;
+import static com.urrecliner.mytracklogs.Vars.HIGH_DISTANCE_WALK;
+import static com.urrecliner.mytracklogs.Vars.HIGH_SPEED_DRIVE;
+import static com.urrecliner.mytracklogs.Vars.HIGH_SPEED_WALK;
+import static com.urrecliner.mytracklogs.Vars.LOW_SPEED_DRIVE;
+import static com.urrecliner.mytracklogs.Vars.LOW_SPEED_WALK;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_EXIT_APP;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_CONFIRMED_STOP;
 import static com.urrecliner.mytracklogs.Vars.NOTIFICATION_BAR_GO;
@@ -77,9 +83,6 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     final static String logID = "Main";
-    final double LOW_SPEED_WALK = 20f, HIGH_SPEED_WALK = 2500f;
-    final double LOW_SPEED_DRIVE = 200f, HIGH_SPEED_DRIVE = 60000f;
-    final double HIGH_DISTANCE_WALK = 500f, HIGH_DISTANCE_DRIVE = 12000f;
     private static Handler updateMarker, notifyAction;
     FloatingActionButton fabGoStop, fabPauseRestart;
     long prevLogTime, elapsedTime;
@@ -87,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Intent serviceIntent;
     LinearLayout llTimeInfo, llTrackInfo;
     double locSouth, locNorth, locWest, locEast;
-    int mapScale = -1;
+    float mapScale = -1f;
 
     GoogleMap mainMap;
     Polyline markLines = null;
@@ -96,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     double meters = 0;
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
-    double totSpeed = 0, totDistance = 0, lowSpeed, highSpeed, highDistance;
+    double totSpeed = 0, totDistance = 0, lowSpeed, highSpeed, highDistance, lowSQRT, highSQRT;
     AlertDialog mainDialog;
 
     ArrayList<LatLng> latLngPos;
@@ -201,16 +204,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         utils.deleteOldLogFiles();
 
     }
-    public void WalkClicked(View v) {    // start_Walk is called by activity.xml
-        isWalk = true;
-        lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK; highDistance = HIGH_DISTANCE_WALK;
-        mainDialog.dismiss();
-        go_Clicked();
-    }
 
-    public void DriveClicked(View v) {
-        isWalk = false;
-        lowSpeed = LOW_SPEED_DRIVE; highSpeed = HIGH_SPEED_DRIVE; highDistance = HIGH_DISTANCE_DRIVE;
+    public void startClicked(View v) {
+        isWalk = v.getTag().equals("W");
+        if (isWalk) {
+            lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK; highDistance = HIGH_DISTANCE_WALK;
+            lowSQRT = Math.sqrt(LOW_SPEED_WALK); highSQRT = Math.sqrt(HIGH_DISTANCE_WALK);
+        } else {
+            lowSpeed = LOW_SPEED_DRIVE; highSpeed = HIGH_SPEED_DRIVE; highDistance = HIGH_DISTANCE_DRIVE;
+            lowSQRT = Math.sqrt(LOW_SPEED_DRIVE); highSQRT = Math.sqrt(HIGH_DISTANCE_DRIVE);
+        }
         mainDialog.dismiss();
         go_Clicked();
     }
@@ -239,7 +242,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     void go_Clicked() {
         modeStarted = true;
         modePaused = false;
-        gpsTracker.stopGPSUpdate();
         TrackLogStart();
         fabGoStop.setImageResource(R.mipmap.button_stop);
         fabPauseRestart.show();
@@ -248,7 +250,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void finishTrackLog() {
         modeStarted = false;
-        modePaused = false;
         utils.log(logID,"--- Finish Tracking ---");
         utils.log(logID,"avrDist="+(totDistance)/dbCount+", avr speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
         utils.log("minMax", " sMaxSpeed="+ sMaxSpeed +" sMinSpeed="+ sMinSpeed);
@@ -259,6 +260,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void TrackLogStart() {
+        gpsTracker.stopGPSUpdate();
         mainMap.clear();
         gpsTracker.startGPSUpdate(getApplicationContext());
         startTime = System.currentTimeMillis();
@@ -281,7 +283,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         showMarker.drawStart(startLat, startLng, false);
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
-        utils.log("SPEED range","lowSpeed="+lowSpeed+" hiSeed="+highSpeed+", hiDist="+highDistance);
+        String s = "lowSpeed="+lowSpeed+" hiSeed="+highSpeed+", hiDist="+highDistance;
+        utils.log("SPEED range",s);
+        Toast.makeText(getApplicationContext(),s, Toast.LENGTH_LONG).show();
         databaseIO.trackInsert(startTime);
         databaseIO.logInsert(startTime, 0, 0);
         locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
@@ -309,9 +313,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onFinish() {
                 utils.log(logID, "finish "+startLat+"x"+ startLng);
                 finishTime = System.currentTimeMillis();
-                calcMapScale();
+                mapScale = calcMapScale();
                 mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng((locNorth + locSouth)/2, (locEast + locWest)/2),
-                        (float) mapScale - 0.15f));
+                        mapScale - 0.15f));
                 elapsedTime = minutes + finishTime - beginTime;
                 databaseIO.trackUpdate(startTime, finishTime, (isWalk) ? 0:1, (int) meters, (int) elapsedTime / 60000);
                 showMarker.drawHereOff();
@@ -328,8 +332,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         long deltaTime = nowTime - prevLogTime;
         if (isActive && deltaTime < 1000)
             return;
-        double distance = mapUtils.calcDistance(prevLatitude, prevLongitude, latitude, longitude);
-        double speed = distance / (double)deltaTime * 1000f * 60f;
+        float distance = mapUtils.calcDistance(prevLatitude, prevLongitude, latitude, longitude);
+        float speed = distance / (float)deltaTime * 1000f * 60f;
 
         if (speed > (highSpeed + highSpeed) || distance > highDistance) {
             utils.log("Bad Speed", isWalk + "{Too BAD} Speed = " + speed + " dTime = " + deltaTime+", Dist = "+distance);
@@ -364,8 +368,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (nowLongitude < locWest) locWest = nowLongitude;
 
         latQues.add(nowLatitude); lonQues.add(nowLongitude);
-        int color = (int) ((speed-lowSpeed)/highSpeed*100);
-        if (color > 100) color = 100; if(color < 0) color = 0;
+        int color = (int) (Math.sqrt(speed-lowSpeed)/Math.sqrt(highSpeed)*20);
+        if (color > 20) color = 20; if(color < 0) color = 0;
         color = speedColor[color];
         drawTrackLogs(color);
         meters += mapUtils.calcDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude);
@@ -390,9 +394,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    void calcMapScale() {
+    float calcMapScale() {
         double fullMapDistance = mapUtils.calcDistance(locSouth, locEast, locNorth, locWest);
-        mapScale = mapUtils.getMapScale(fullMapDistance);
+        return mapUtils.getMapScale(fullMapDistance);
     }
 
     @Override
@@ -459,10 +463,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onBackPressed() {
         if (!modeStarted)
             exit_Application();
-        else
+        else {
             confirmFinish();
+            if (!modeStarted)
+                exit_Application();
+        }
     }
-
 
     void exit_Application() {
 
@@ -562,9 +568,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void reDrawMap() {
         if (locNorth > -90) {
-            calcMapScale();
+            float scale = calcMapScale();
             mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                    new LatLng((locNorth + locSouth) / 2, (locEast + locWest) / 2), (float) mapScale - 0.15f));
+                    new LatLng((locNorth + locSouth) / 2, (locEast + locWest) / 2), scale - 0.15f));
         }
     }
     @Override

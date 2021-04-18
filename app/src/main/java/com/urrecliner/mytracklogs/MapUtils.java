@@ -7,18 +7,11 @@ import android.util.Base64;
 
 import java.io.ByteArrayOutputStream;
 
-import static com.urrecliner.mytracklogs.Vars.nowLatitude;
-import static com.urrecliner.mytracklogs.Vars.nowLongitude;
-import static com.urrecliner.mytracklogs.Vars.prevLatitude;
-import static com.urrecliner.mytracklogs.Vars.prevLongitude;
-import static com.urrecliner.mytracklogs.Vars.utils;
-
 class MapUtils {
 
-    private Location locationPrev = new Location("");
-    private Location locationNow = new Location("");
-
-    double calcDistance(double lat1, double lng1, double lat2, double lng2) {
+    float calcDistance(double lat1, double lng1, double lat2, double lng2) {
+        Location locationPrev = new Location("");
+        Location locationNow = new Location("");
         locationPrev.setLatitude(lat1);
         locationPrev.setLongitude(lng1);
         locationNow.setLatitude(lat2);
@@ -26,7 +19,7 @@ class MapUtils {
         return locationPrev.distanceTo(locationNow) * 1.1f;
     }
 
-    int getMapScale(double fullMapDistance) {
+    float getMapScale(double fullMapDistance) {
         double [] scaleMap = { 1128, 2256, 4514, 9028, 18056, 36112, 72224, 144448, 288895, 577790, 1155581, 2311162,
                 4622324, 9244649, 18489298, 36978597, 73957194, 147914388, 295828775, 591657550};
         int mapScale;
@@ -39,14 +32,13 @@ class MapUtils {
 
     Bitmap StringToBitMap(String encodedString){
         byte [] encodeByte= Base64.decode(encodedString,Base64.DEFAULT);
-        Bitmap bitmap= BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.length);
-        return bitmap;
+        return BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.length);
     }
 
     String BitMapToString(Bitmap bitmap){
-        ByteArrayOutputStream baos= new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG,100, baos);
-        byte [] b=baos.toByteArray();
+        ByteArrayOutputStream byteOut= new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG,100, byteOut);
+        byte [] b=byteOut.toByteArray();
         return Base64.encodeToString(b, Base64.DEFAULT);
     }
 

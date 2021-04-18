@@ -11,17 +11,19 @@
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:layout_margin="20dp"
-        android:onClick="DriveClicked"
+        android:onClick="startClicked"
         android:contentDescription="@string/none"
         android:src="@mipmap/drive"
+        android:tag="D"
         />
 
     <ImageView
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:layout_margin="20dp"
-        android:onClick="WalkClicked"
+        android:onClick="startClicked"
         android:contentDescription="@string/none"
         android:src="@mipmap/footprint"
+        android:tag="W"
         />
 </LinearLayout>

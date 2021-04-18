@@ -13,6 +13,7 @@ import android.os.IBinder;
 
 import androidx.core.app.ActivityCompat;
 
+import static com.urrecliner.mytracklogs.Vars.isWalk;
 import static com.urrecliner.mytracklogs.Vars.utils;
 
 class GPSTracker extends Service implements LocationListener {
@@ -22,16 +23,14 @@ class GPSTracker extends Service implements LocationListener {
     Location location = null; // Location
     double trackerLat, trackerLng;
     final String logID = "GPS";
-    private static final float MIN_DISTANCE_WALK = 5; // meters
-    private static final long MIN_TIME_WALK_UPDATES = 5000; // miliSecs
     protected LocationManager locationManager;
-    float updateDistance = MIN_DISTANCE_WALK;
-    long updateTime = MIN_TIME_WALK_UPDATES;
     Context context;
 
     void startGPSUpdate(Context context) {
         this.context = context;
 
+        float updateDistance = (isWalk) ? 10: 100;
+        long updateTime = (isWalk) ? 10000: 10000;
         try {
             locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
             assert locationManager != null;
@@ -40,28 +39,13 @@ class GPSTracker extends Service implements LocationListener {
             if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED)
                 return;
-            if (isGPSEnabled) {
+            if (isGPSEnabled || isNetworkEnabled) {
                 assert locationManager != null;
                 locationManager.requestLocationUpdates(
                         LocationManager.GPS_PROVIDER, updateTime, updateDistance, this);
                 if (locationManager != null) {
                     location = locationManager
                             .getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    if (location != null) {
-                        trackerLat = location.getLatitude();
-                        trackerLng = location.getLongitude();
-                    }
-                }
-            }
-            if (isNetworkEnabled) {
-                assert locationManager != null;
-                locationManager.requestLocationUpdates(
-                        LocationManager.NETWORK_PROVIDER,
-                        MIN_TIME_WALK_UPDATES,
-                        MIN_DISTANCE_WALK, this);
-                if (locationManager != null) {
-                    location = locationManager
-                            .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                     if (location != null) {
                         trackerLat = location.getLatitude();
                         trackerLng = location.getLongitude();
