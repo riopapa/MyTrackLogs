@@ -62,9 +62,9 @@ class Vars {
     static final int NOTIFICATION_BAR_SHOW_CONFIRM = 90;
     static final int NOTIFICATION_BAR_HIDE_CONFIRM = 91;
 
-    static final double LOW_SPEED_WALK = 20f, HIGH_SPEED_WALK = 600f;
-    static final double LOW_SPEED_DRIVE = 200f, HIGH_SPEED_DRIVE = 3000f;
-    static final double HIGH_DISTANCE_WALK = 200f, HIGH_DISTANCE_DRIVE = 4000f;
+    static final double LOW_SPEED_WALK = 20f, HIGH_SPEED_WALK = 400f;
+    static final double LOW_SPEED_DRIVE = 100f, HIGH_SPEED_DRIVE = 2500f;
+    static final double HIGH_DISTANCE_WALK = 200f, HIGH_DISTANCE_DRIVE = 10000f;
 
     /*
         generate static color table speedColor index value (only if color table change is required)
@@ -84,7 +84,6 @@ class Vars {
     }
 
     static int [] speedColor = {
-
             0xFF6C0505, 0xFF731005, 0xFF7A1D05, 0xFF812B06, 0xFF883A06, 0xFF8F4A06,
             0xFF955C06, 0xFF9C6F06, 0xFFA38406, 0xFFAA9A07, 0xFFB1B107, 0xFFA6B807,
             0xFF9ABF07, 0xFF8CC607, 0xFF7ECD07, 0xFF6DD407, 0xFF5CDA07, 0xFF48E107,

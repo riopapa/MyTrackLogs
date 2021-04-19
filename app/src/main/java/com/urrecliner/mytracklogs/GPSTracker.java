@@ -29,7 +29,7 @@ class GPSTracker extends Service implements LocationListener {
     void startGPSUpdate(Context context) {
         this.context = context;
 
-        float updateDistance = (isWalk) ? 10: 100;
+        float updateDistance = (isWalk) ? 20: 30;
         long updateTime = (isWalk) ? 10000: 10000;
         try {
             locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);

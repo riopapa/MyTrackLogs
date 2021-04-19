@@ -105,8 +105,8 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         viewHolder.tvStartFinish.setText(s);
         DecimalFormat decimalFormat = new DecimalFormat("##,###,###");
         s = decimalFormat.format(trackLog.getMeters())+ "m" +
-                "\n"+utils.minute2Text(trackLog.getMinutes()) + ((trackLog.getWalkDrive() == 0) ? " W ":" D");
-                viewHolder.tvMeterMinutes.setText(s);
+                "\n"+utils.minute2Text(trackLog.getMinutes()) + ((trackLog.getWalkDrive() == 0) ? " Wlk":" Drv");
+        viewHolder.tvMeterMinutes.setText(s);
         viewHolder.tvPlaceName.setText(trackLog.getPlaceName());
 
 //        int grayed = 240 * position / (trackLogs.size()+1)
