@@ -230,7 +230,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             color = (int) (Math.sqrt(speed)/highSqrt*20);
             if (color > 20) color = 20; if(color < 0) color = 0;
             if (isWalk) color = 20 - color; // red to green (drive), green to red (walk)
-//            utils.log("color","color="+color+" speed="+Math.sqrt(speed)+" low="+lowSqrt+" high="+highSqrt);
             int colorCode = speedColor[color];
             int capColor = colorCode ^ 0x222222;
             PolylineOptions polyOptions = new PolylineOptions();
@@ -257,7 +256,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 places.add(gps2Address.getPlace(geocoder, locLogs.get(i).latitude, locLogs.get(i).longitude));
             }
             else {
-                Bitmap capColormap = changeBitmapColor(triangleMap, capColor);
+                Bitmap capColormap = utils.changeBitmapColor(triangleMap, capColor);
                 customCap = new CustomCap(BitmapDescriptorFactory.fromBitmap(capColormap),24); // big number small icon
                 polyOptions.endCap(customCap);
                 lineLatLng.set(0, new LatLng(locLogs.get(i).latitude, locLogs.get(i).longitude));
@@ -273,17 +272,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         showMarker.drawFinish(locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude, false);
         places.add(gps2Address.getPlace(geocoder, locLogs.get(locLogs.size()-1).latitude, locLogs.get(locLogs.size()-1).longitude));
     }
-    private Bitmap changeBitmapColor(Bitmap sourceBitmap, int color) {
 
-        Bitmap resultBitmap = Bitmap.createBitmap(sourceBitmap, 0, 0,
-                sourceBitmap.getWidth() - 1, sourceBitmap.getHeight() - 1);
-        Paint p = new Paint();
-        ColorFilter filter = new LightingColorFilter(color, color);
-        p.setColorFilter(filter);
-        Canvas canvas = new Canvas(resultBitmap);
-        canvas.drawBitmap(resultBitmap, 0, 0, p);
-        return resultBitmap;
-    }
     private boolean retrieveDBLog() {
 
         LocLog prevLog, nowLog;

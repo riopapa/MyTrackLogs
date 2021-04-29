@@ -1,6 +1,5 @@
 package com.urrecliner.mytracklogs;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -90,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Intent serviceIntent;
     LinearLayout llTimeInfo, llTrackInfo;
     double locSouth, locNorth, locWest, locEast;
+    float lowSqrt, highSqrt;
     float mapScale = -1f;
 
     GoogleMap mainMap;
@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     double meters = 0;
     long startTime = 0, finishTime = 0, beginTime = 0, minutes = 0;
     int dbCount = 0;
-    double totSpeed = 0, totDistance = 0, lowSpeed, highSpeed, highDistance, lowSQRT, highSQRT;
+    double totSpeed = 0, totDistance = 0, lowSpeed, highSpeed, highDistance;
     AlertDialog mainDialog;
 
     ArrayList<LatLng> latLngPos;
@@ -209,10 +209,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         isWalk = v.getTag().equals("W");
         if (isWalk) {
             lowSpeed = LOW_SPEED_WALK; highSpeed = HIGH_SPEED_WALK; highDistance = HIGH_DISTANCE_WALK;
-            lowSQRT = Math.sqrt(LOW_SPEED_WALK); highSQRT = Math.sqrt(HIGH_DISTANCE_WALK);
+            lowSqrt = (float) Math.sqrt(LOW_SPEED_WALK); highSqrt = (float) Math.sqrt(HIGH_DISTANCE_WALK);
         } else {
             lowSpeed = LOW_SPEED_DRIVE; highSpeed = HIGH_SPEED_DRIVE; highDistance = HIGH_DISTANCE_DRIVE;
-            lowSQRT = Math.sqrt(LOW_SPEED_DRIVE); highSQRT = Math.sqrt(HIGH_DISTANCE_DRIVE);
+            lowSqrt = (float) Math.sqrt(LOW_SPEED_DRIVE); highSqrt = (float) Math.sqrt(HIGH_DISTANCE_DRIVE);
         }
         mainDialog.dismiss();
         go_Clicked();
@@ -246,13 +246,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fabGoStop.setImageResource(R.mipmap.button_stop);
         fabPauseRestart.show();
         updateNotification(ACTION_START);
+        highSqrt = (float) ((isWalk) ? Math.sqrt(HIGH_SPEED_WALK): Math.sqrt(HIGH_SPEED_DRIVE));
+        showMarker = new ShowMarker();
+        showMarker.init(mActivity, mainMap);
     }
 
     void finishTrackLog() {
         modeStarted = false;
         utils.log(logID,"--- Finish Tracking ---");
-        utils.log(logID,"avrDist="+(totDistance)/dbCount+", avr speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
-        utils.log("minMax", " sMaxSpeed="+ sMaxSpeed +" sMinSpeed="+ sMinSpeed);
+        utils.logX(logID,"avrDist="+(totDistance)/dbCount+", avr speed:"+(totSpeed)/dbCount+" dbCount="+dbCount+" Elapsed="+elapsedTime/60000);
+        utils.logX("minMax", " sMaxSpeed="+ sMaxSpeed +" sMinSpeed="+ sMinSpeed);
         TrackLogStop();
         fabGoStop.setImageResource(R.mipmap.button_start);
         fabPauseRestart.hide();
@@ -283,8 +286,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         showMarker.drawStart(startLat, startLng, false);
         utils.log("create","NEW log "+sdfDateDayTime.format(startTime));
+        utils.logX("create","NEW log "+sdfDateDayTime.format(startTime));
         String s = "lowSpeed="+lowSpeed+" hiSeed="+highSpeed+", hiDist="+highDistance;
         utils.log("SPEED range",s);
+        utils.logX("SPEED range",s);
         Toast.makeText(getApplicationContext(),s, Toast.LENGTH_LONG).show();
         databaseIO.trackInsert(startTime);
         databaseIO.logInsert(startTime, 0, 0);
@@ -368,10 +373,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (nowLongitude < locWest) locWest = nowLongitude;
 
         latQues.add(nowLatitude); lonQues.add(nowLongitude);
-        int color = (int) (Math.sqrt(speed-lowSpeed)/Math.sqrt(highSpeed)*20);
+
+        int color = (int) (Math.sqrt(speed)/highSqrt*20);
         if (color > 20) color = 20; if(color < 0) color = 0;
-        color = speedColor[color];
-        drawTrackLogs(color);
+        if (isWalk) color = 20 - color; // red to green (drive), green to red (walk)
+        int colorCode = speedColor[color];
+        drawTrackLogs(colorCode);
         meters += mapUtils.calcDistance(prevLatitude, prevLongitude, nowLatitude, nowLongitude);
         if (dbCount > (QUE_COUNT-2)) {
             databaseIO.logInsert(nowTime, nowLatitude, nowLongitude);

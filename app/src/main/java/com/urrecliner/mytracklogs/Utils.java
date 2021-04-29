@@ -3,6 +3,11 @@ package com.urrecliner.mytracklogs;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.LightingColorFilter;
+import android.graphics.Paint;
 import android.os.Environment;
 import android.util.Log;
 
@@ -34,7 +39,8 @@ class Utils {
         log = (traces.length >6) ? traceName(traces[6].getMethodName()):"";
         log = log + traceName(traces[5].getMethodName()) + traceName(traces[4].getMethodName()) + traceClassName(traces[3].getClassName())+"> "+traces[3].getMethodName() + "#" + traces[3].getLineNumber() + " {"+ tag + "} " + text;
         Log.w(tag , log);
-        append2file(sdfDateTimeLog.format(System.currentTimeMillis())+" " +log);
+        String fullName = getPackageDirectory().toString() + "/" + PREFIX + sdfDate.format(new Date())+".txt";
+        append2file(fullName, sdfDateTimeLog.format(System.currentTimeMillis())+" " +log);
     }
 
     private final String [] ignoreTraces = { "dispatchTransaction", "zza", "performResume", "performCreate", "callActivityOnResume",
@@ -56,9 +62,20 @@ class Utils {
         StackTraceElement[] traces;
         traces = Thread.currentThread().getStackTrace();
         String log = traceName(traces[5].getMethodName()) + traceName(traces[4].getMethodName()) + traceClassName(traces[3].getClassName())
-                +"> "+traces[3].getMethodName() + "#" + traces[3].getLineNumber() + " {"+ tag + "} " + text +"\n"+getStackTrace(e);
-        Log.e("<" + tag + ">" , log);
-        append2file(sdfDateTimeLog.format(new Date())+" : " +log);
+                +"> "+traces[3].getMethodName() + "#" + traces[3].getLineNumber() + " {"+ tag + "} " + text +"\n";
+        Log.e("<" + tag + ">" , log+getStackTrace(e));
+        String fullName = getPackageDirectory().toString() + "/" + PREFIX + sdfDate.format(new Date())+".txt";
+        append2file(fullName, sdfDateTimeLog.format(System.currentTimeMillis())+" " +log);
+    }
+
+    void logX(String tag, String text) {
+        StackTraceElement[] traces;
+        traces = Thread.currentThread().getStackTrace();
+        String log = traceName(traces[5].getMethodName()) + traceName(traces[4].getMethodName()) + traceClassName(traces[3].getClassName())
+                +"> "+traces[3].getMethodName() + "#" + traces[3].getLineNumber() + " {"+ tag + "} " + text +"\n";
+        Log.e(tag , log);
+        String fullName = new File(Environment.getExternalStorageDirectory(),"download/myTrackLogs.txt").toString();
+        append2file(fullName, sdfDateTimeLog.format(new Date())+" : " +log);
     }
 
     String getStackTrace(Exception e) {
@@ -67,12 +84,10 @@ class Utils {
         return errors.toString();
     }
 
-    private void append2file(String textLine) {
+    private void append2file(String fullName, String textLine) {
 
-        File directory = getPackageDirectory();
         BufferedWriter bw = null;
         FileWriter fw = null;
-        String fullName = directory.toString() + "/" + PREFIX + sdfDate.format(new Date())+".txt";
         try {
             File file = new File(fullName);
             if (!file.exists())
@@ -162,4 +177,17 @@ class Utils {
             }
         }
     }
+
+    Bitmap changeBitmapColor(Bitmap sourceBitmap, int color) {
+
+        Bitmap resultBitmap = Bitmap.createBitmap(sourceBitmap, 0, 0,
+                sourceBitmap.getWidth() - 1, sourceBitmap.getHeight() - 1);
+        Paint p = new Paint();
+        ColorFilter filter = new LightingColorFilter(color, color);
+        p.setColorFilter(filter);
+        Canvas canvas = new Canvas(resultBitmap);
+        canvas.drawBitmap(resultBitmap, 0, 0, p);
+        return resultBitmap;
+    }
+
 }
