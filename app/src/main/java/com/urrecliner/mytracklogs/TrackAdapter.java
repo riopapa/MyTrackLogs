@@ -1,7 +1,6 @@
 package com.urrecliner.mytracklogs;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.view.LayoutInflater;
@@ -17,7 +16,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.text.DecimalFormat;
 
 import static com.urrecliner.mytracklogs.Vars.dummyMap;
-import static com.urrecliner.mytracklogs.Vars.isWalk;
 import static com.urrecliner.mytracklogs.Vars.trackLogs;
 import static com.urrecliner.mytracklogs.Vars.databaseIO;
 import static com.urrecliner.mytracklogs.Vars.decimalComma;
@@ -30,11 +28,9 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
     static class TrackViewHolder extends RecyclerView.ViewHolder {
 
-        final String logID = "trackAdapter";
         TextView tvStartFinish, tvMeterMinutes, tvPlaceName;
         ImageView ivBitmap;
         View viewLine;
-        boolean isWalk;
 
         TrackViewHolder(View view) {
             super(view);
@@ -43,22 +39,16 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
             this.tvMeterMinutes = itemView.findViewById(R.id.metersMinutes);
             this.ivBitmap = itemView.findViewById(R.id.trackMap);
             this.tvPlaceName = itemView.findViewById(R.id.placeName);
-            this.viewLine.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    trackPosition = getAdapterPosition();
-                    TrackLog trackLog = trackLogs.get(trackPosition);
-                    Intent intent = new Intent(trackActivity, MapActivity.class);
-                    intent.putExtra("trackLog", trackLog);
-                    trackActivity.startActivity(intent);
-                }
+            this.viewLine.setOnClickListener(view1 -> {
+                trackPosition = getAdapterPosition();
+                TrackLog trackLog = trackLogs.get(trackPosition);
+                Intent intent = new Intent(trackActivity, MapActivity.class);
+                intent.putExtra("trackLog", trackLog);
+                trackActivity.startActivity(intent);
             });
-            viewLine.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    deleteThisLogOrNot(getAdapterPosition());
-                    return true;
-                }
+            viewLine.setOnLongClickListener(view12 -> {
+                deleteThisLogOrNot(getAdapterPosition());
+                return true;
             });
         }
     }
@@ -72,16 +62,13 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
                 utils.long2Time(TrackLog.getFinishTime())+"\n"+
                 decimalComma.format(TrackLog.getMeters())+"m "+utils.minute2Text(TrackLog.getMinutes());
         builder.setMessage(s);
-        builder.setNegativeButton("Delete",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        long fromTime = TrackLog.getStartTime();
-                        long toTime = TrackLog.getFinishTime();
-                        databaseIO.trackDelete(fromTime);
-                        databaseIO.logDeleteFromTo(fromTime, toTime);
-                        trackLogs.remove(position);
-                        trackAdapter.notifyItemRemoved(position);
-                    }
+        builder.setNegativeButton("Delete", (dialog, which) -> {
+                    long fromTime = TrackLog.getStartTime();
+                    long toTime = TrackLog.getFinishTime();
+                    databaseIO.trackDelete(fromTime);
+                    databaseIO.logDeleteFromTo(fromTime, toTime);
+                    trackLogs.remove(position);
+                    trackAdapter.notifyItemRemoved(position);
                 });
         AlertDialog dialog = builder.create();
         dialog.show();
@@ -91,7 +78,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     @Override
     public TrackViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         View view = LayoutInflater.from(viewGroup.getContext())
-                .inflate(R.layout.one_track, viewGroup, false);
+                .inflate(R.layout.track_log_line, viewGroup, false);
         return new TrackViewHolder(view);
     }
 

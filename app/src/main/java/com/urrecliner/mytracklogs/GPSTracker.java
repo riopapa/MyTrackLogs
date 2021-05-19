@@ -21,7 +21,7 @@ class GPSTracker extends Service implements LocationListener {
     boolean isGPSEnabled = false;
     boolean isNetworkEnabled = false;
     Location location = null; // Location
-    double trackerLat, trackerLng;
+    double GPSLat, GPSLng;
     final String logID = "GPS";
     protected LocationManager locationManager;
     Context context;
@@ -29,8 +29,8 @@ class GPSTracker extends Service implements LocationListener {
     void startGPSUpdate(Context context) {
         this.context = context;
 
-        float updateDistance = (isWalk) ? 20: 30;
-        long updateTime = (isWalk) ? 10000: 10000;
+        float updateDistance = (isWalk) ? 5: 30;
+        long updateTime = (isWalk) ? 5000: 10000;
         try {
             locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
             assert locationManager != null;
@@ -47,8 +47,8 @@ class GPSTracker extends Service implements LocationListener {
                     location = locationManager
                             .getLastKnownLocation(LocationManager.GPS_PROVIDER);
                     if (location != null) {
-                        trackerLat = location.getLatitude();
-                        trackerLng = location.getLongitude();
+                        GPSLat = location.getLatitude();
+                        GPSLng = location.getLongitude();
                     }
                 }
             }
@@ -63,15 +63,15 @@ class GPSTracker extends Service implements LocationListener {
         }
     }
 
-    double getTrackerLat() { return trackerLat; }
-    double getTrackerLng() { return trackerLng; }
+    double getGPSLat() { return GPSLat; }
+    double getGPSLng() { return GPSLng; }
 
     @Override
     public void onLocationChanged(Location location) {
         this.location = location;
-        trackerLat = location.getLatitude();
-        trackerLng = location.getLongitude();
-        MainActivity.locationUpdatedByGPSTracker(trackerLat, trackerLng);
+        GPSLat = location.getLatitude();
+        GPSLng = location.getLongitude();
+        MainActivity.locationUpdatedByGPSTracker(GPSLat, GPSLng);
     }
 
     @Override

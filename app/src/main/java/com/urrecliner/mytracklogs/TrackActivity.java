@@ -8,8 +8,6 @@ import android.util.Log;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import java.util.ArrayList;
 
 import static com.urrecliner.mytracklogs.Vars.mapUtils;
@@ -23,7 +21,6 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 
 public class TrackActivity extends AppCompatActivity {
 
-    final String logID = "track";
     Cursor cursor;
     @Override
     protected void onCreate(Bundle savedInstanceState) {

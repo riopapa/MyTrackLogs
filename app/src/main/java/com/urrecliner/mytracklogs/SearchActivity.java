@@ -29,7 +29,7 @@ public class SearchActivity extends AppCompatActivity {
     Calendar calendar;
     TextView tvShowMeMap;
 
-    private SimpleDateFormat sdfFullTime = new SimpleDateFormat("yy-MM-dd(EEE) HH:mm", Locale.getDefault());
+    private final SimpleDateFormat sdfFullTime = new SimpleDateFormat("yy-MM-dd(EEE) HH:mm", Locale.getDefault());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,31 +53,25 @@ public class SearchActivity extends AppCompatActivity {
         finishTime = calendar.getTimeInMillis();
 
         finishDP.updateDate(yearF, monthF, dayF);
-        finishDP.setOnDateChangedListener(new DatePicker.OnDateChangedListener() {
-            @Override
-            public void onDateChanged(DatePicker datePicker, int year, int month, int dayOfMonth) {
-                yearF = year; monthF = month; dayF = dayOfMonth;
-                calendar.set(yearF, monthF, dayF, hourF, minuteF,0);
-                finishTime = calendar.getTimeInMillis();
-                if (startTime > finishTime) {
-                    startTime = finishTime - 24*60*60000;
-                }
-                showDateTimeText();
+        finishDP.setOnDateChangedListener((datePicker, year, month, dayOfMonth) -> {
+            yearF = year; monthF = month; dayF = dayOfMonth;
+            calendar.set(yearF, monthF, dayF, hourF, minuteF,0);
+            finishTime = calendar.getTimeInMillis();
+            if (startTime > finishTime) {
+                startTime = finishTime - 24*60*60000;
             }
+            showDateTimeText();
         });
         finishDP.setMaxDate(finishTime);
         finishTP.setHour(hourF); finishTP.setMinute(minuteF);
-        finishTP.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
-            @Override
-            public void onTimeChanged(TimePicker timePicker, int hour, int min) {
-                hourF = hour; minuteF = min;
-                calendar.set(yearF, monthF, dayF, hourF, minuteF,0);
-                finishTime = calendar.getTimeInMillis();
-                if (startTime > finishTime) {
-                    startTime = finishTime - 24*60*60000;
-                }
-                showDateTimeText();
+        finishTP.setOnTimeChangedListener((timePicker, hour, min) -> {
+            hourF = hour; minuteF = min;
+            calendar.set(yearF, monthF, dayF, hourF, minuteF,0);
+            finishTime = calendar.getTimeInMillis();
+            if (startTime > finishTime) {
+                startTime = finishTime - 24*60*60000;
             }
+            showDateTimeText();
         });
 
         calendar.set(Calendar.HOUR_OF_DAY,0);
@@ -88,33 +82,27 @@ public class SearchActivity extends AppCompatActivity {
 
         calendar.setTimeInMillis(startTime);
         startDP.updateDate(yearS, monthS, dayS);
-        startDP.setOnDateChangedListener(new DatePicker.OnDateChangedListener() {
-            @Override
-            public void onDateChanged(DatePicker datePicker, int year, int month, int dayOfMonth) {
-                yearS = year; monthS = month; dayS = dayOfMonth;
-                calendar.set(yearS, monthS, dayS, hourS, minuteS,0);
-                startTime = calendar.getTimeInMillis();
-                if (startTime > finishTime) {
-                    finishTime = startTime + 24*60*60000;
-                }
-                showDateTimeText();
+        startDP.setOnDateChangedListener((datePicker, year, month, dayOfMonth) -> {
+            yearS = year; monthS = month; dayS = dayOfMonth;
+            calendar.set(yearS, monthS, dayS, hourS, minuteS,0);
+            startTime = calendar.getTimeInMillis();
+            if (startTime > finishTime) {
+                finishTime = startTime + 24*60*60000;
             }
+            showDateTimeText();
         });
         startDP.setMaxDate(finishTime);
         startTP.setHour(hourS); startTP.setMinute(minuteS);
-        startTP.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
-            @Override
-            public void onTimeChanged(TimePicker timePicker, int hour, int min) {
-                hourS = hour; minuteS = min;
-                calendar.set(yearS, monthS, dayS, hourS, minuteS,0);
-                startTime = calendar.getTimeInMillis();
+        startTP.setOnTimeChangedListener((timePicker, hour, min) -> {
+            hourS = hour; minuteS = min;
+            calendar.set(yearS, monthS, dayS, hourS, minuteS,0);
+            startTime = calendar.getTimeInMillis();
 //                utils.log("start time", sdfFullTime.format(startTime));
-                if (startTime > finishTime) {
-                    utils.log("startTP","startTime "+startTime+" > finishTime "+finishTime);
-                    finishTime = startTime + 24*60*60000;
-                }
-                showDateTimeText();
+            if (startTime > finishTime) {
+                utils.log("startTP","startTime "+startTime+" > finishTime "+finishTime);
+                finishTime = startTime + 24*60*60000;
             }
+            showDateTimeText();
         });
 
         FloatingActionButton fabSearch = findViewById(R.id.fabGoStop);

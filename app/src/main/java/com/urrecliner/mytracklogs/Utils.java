@@ -68,7 +68,7 @@ class Utils {
         append2file(fullName, sdfDateTimeLog.format(System.currentTimeMillis())+" " +log);
     }
 
-    void logX(String tag, String text) {
+    void log2Download(String tag, String text) {
         StackTraceElement[] traces;
         traces = Thread.currentThread().getStackTrace();
         String log = traceName(traces[5].getMethodName()) + traceName(traces[4].getMethodName()) + traceClassName(traces[3].getClassName())
@@ -159,13 +159,8 @@ class Utils {
     void deleteOldLogFiles() {
 
         File directory = getPackageDirectory();
-        File[] files = new File(directory.toString()).listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.contains(PREFIX);
-            }
-        });
-        String oldDate = sdfDate.format(System.currentTimeMillis() - 2*24*60*60*1000L);
+        File[] files = new File(directory.toString()).listFiles((dir, name) -> name.contains(PREFIX));
+        String oldDate = sdfDate.format(System.currentTimeMillis() - 7*24*60*60*1000L);
         if (files != null) {
             Collator myCollator = Collator.getInstance();
             for (File file : files) {

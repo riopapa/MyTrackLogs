@@ -29,9 +29,8 @@ class Vars {
     static TrackAdapter trackAdapter;
     static int trackPosition = -1;
     static SearchActivity searchActivity;
-    static boolean modeStarted = false, modePaused = false, isWalk = true;
+    static boolean isWalk = true;
 
-    static double prevLatitude = -999, prevLongitude = -999, nowLatitude = 0, nowLongitude = 0;
     static Bitmap dummyMap;
     static DecimalFormat decimalComma = new DecimalFormat("##,###,###");
     static SimpleDateFormat sdfDateDay = new SimpleDateFormat("MM-dd(EEE)", Locale.getDefault());
@@ -62,13 +61,13 @@ class Vars {
     static final int NOTIFICATION_BAR_SHOW_CONFIRM = 90;
     static final int NOTIFICATION_BAR_HIDE_CONFIRM = 91;
 
-    static final double LOW_SPEED_WALK = 20f, HIGH_SPEED_WALK = 400f;
+    static final double LOW_SPEED_WALK = 10f, HIGH_SPEED_WALK = 500f;
     static final double LOW_SPEED_DRIVE = 100f, HIGH_SPEED_DRIVE = 2500f;
     static final double HIGH_DISTANCE_WALK = 200f, HIGH_DISTANCE_DRIVE = 10000f;
 
-    /*
+    /* ---
         generate static color table speedColor index value (only if color table change is required)
-     */
+    --- */
     static void generateColor() {
         AnimatedColor animatedColor = new AnimatedColor(
                 mContext.getColor(R.color.colorLow), mContext.getColor(R.color.colorHigh));

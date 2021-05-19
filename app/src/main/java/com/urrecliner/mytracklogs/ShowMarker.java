@@ -34,7 +34,7 @@ class ShowMarker {
     private CustomCap endCap;
     private PolylineOptions polyOptions;
     private static final int POLYLINE_STROKE_WIDTH_PX = 14;
-    private float lowSpeed, highSpeed, lowSqrt, highSqrt;
+    float lowSpeed, highSpeed, lowSqrt, highSqrt;
     private Bitmap bitmapWalkDrive;
 
     void init(Activity activity, GoogleMap map) {

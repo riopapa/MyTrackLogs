@@ -46,7 +46,6 @@ public class NotificationService extends Service {
     NotificationChannel mNotificationChannel = null;
     NotificationManager mNotificationManager;
     private RemoteViews mRemoteViews;
-    private final String logID = "Notify";
     private boolean isStarted;
 
     @Override
@@ -66,15 +65,12 @@ public class NotificationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-//        utils.log(logID," start command");
         int operation;
         try {
             operation = intent.getIntExtra("operation", NOTIFICATION_BAR_NO_ACTION);
         } catch (Exception e) {
-//            utils.logE(logID, "operation EXCEPTION", e);
             return START_STICKY;
         }
-//        utils.log(logID, "operation : " + operation);
         switch (operation) {
             case NOTIFICATION_BAR_NO_ACTION:
                 break;
@@ -99,7 +95,7 @@ public class NotificationService extends Service {
                 MainActivity.notificationBarTouched(NOTIFICATION_BAR_HIDE_CONFIRM);
                 break;
             default:
-                utils.log(logID, "Invalid operation "+operation);
+                utils.log("notify", "Invalid operation "+operation);
         }
 
         String action = intent.getStringExtra("action");
@@ -169,15 +165,12 @@ public class NotificationService extends Service {
     private void showInForeground() {
 
         ActivityManager activityManager = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningTaskInfo> tasks =activityManager.getRunningTasks(10); //얻어올 task갯수 원하는 만큼의 수를 입력하면 된다.
+        List<ActivityManager.RunningTaskInfo> tasks =activityManager.getRunningTasks(10); // 얻어올 task 갯수 원하는 만큼의 수를 입력하면 된다.
         if(!tasks.isEmpty()) {
             int tasksSize = tasks.size();
-//            utils.log(logID, "tasksSize "+tasksSize);
             for(int i = 0; i < tasksSize;  i++) {
                 ActivityManager.RunningTaskInfo taskInfo = tasks.get(i);
-//                utils.log(logID, taskInfo.topActivity.getPackageName()+" vs "+ mContext.getPackageName());
                 if(taskInfo.topActivity.getPackageName().equals(mContext.getPackageName())) {
-//                    utils.log(logID, taskInfo.topActivity.getPackageName()+" EQUALS "+ mContext.getPackageName());
                     activityManager.moveTaskToFront(taskInfo.id, 0);
                 }
             }
@@ -231,11 +224,6 @@ public class NotificationService extends Service {
         pi = PendingIntent.getService(mContext, NOTIFICATION_BAR_EXIT_APP, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pi);
         mRemoteViews.setOnClickPendingIntent(R.id.nExit, pi);
-
-//      Following start mainActivity, but from almost scracth, -_-
-//        Intent mainIntent = new Intent(mContext, MainActivity.class);   // bring mainActivity on Top
-//        mainIntent.putExtra("operation", NOTIFICATION_BAR_SHOW_MAIN);
-//        mRemoteViews.setOnClickPendingIntent(R.id.ll_customNotification, PendingIntent.getActivity(mContext, 0, mainIntent, 0));
 
     }
 

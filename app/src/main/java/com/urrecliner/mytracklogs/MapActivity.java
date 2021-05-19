@@ -5,10 +5,6 @@ import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.ColorFilter;
-import android.graphics.LightingColorFilter;
-import android.graphics.Paint;
 import android.location.Geocoder;
 import android.os.Bundle;
 import android.view.View;
@@ -115,12 +111,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         tvLogInfo =  findViewById(R.id.logSummary);
         gps2Address = new GPS2Address();
         ImageView iv = findViewById(R.id.smallMap);
-        iv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                view.setVisibility(View.INVISIBLE);
-            }
-        });
+        iv.setOnClickListener(view -> view.setVisibility(View.INVISIBLE));
     }
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -147,16 +138,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             tvLogInfo.setVisibility(View.INVISIBLE);
         googleMap.getUiSettings().setCompassEnabled(true);
         View v = findViewById(R.id.fragMap);
-        v.post(new Runnable() {
-            @Override
+        v.post(() -> new Timer().schedule(new TimerTask() {
             public void run() {
-                new Timer().schedule(new TimerTask() {
-                    public void run() {
-                        thisMap.snapshot(mapSaveShot);
-                    }
-                }, 600);
+                thisMap.snapshot(mapSaveShot);
             }
-        });
+        }, 600));
 //        googleMap.setMyLocationEnabled(true);
 //        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
     }
@@ -207,7 +193,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         CustomCap customCap;
         totDistance = 0;
         double distance, maxDistance = 0, maxSpeed = 0;
-        int color = speedColor[0], j = -1;
+        int j = -1;
         lowSpeed = (float) ((isWalk) ? LOW_SPEED_WALK: LOW_SPEED_DRIVE);
         highSpeed = (float) ((isWalk) ? HIGH_SPEED_WALK: HIGH_SPEED_DRIVE);
         lowSqrt = (float) ((isWalk) ? Math.sqrt(LOW_SPEED_WALK): Math.sqrt(LOW_SPEED_DRIVE));
@@ -227,7 +213,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 maxSpeed = speed;
 //            utils.log("totDistance",i+""+totDistance+" maxDist="+maxDistance+" maxSpeed="+maxSpeed);
 //            utils.log("locLogs^",i+", "+locLogs.get(i).speed+", "+speed+", "+distance+", "+locLogs.get(i).latitude+", "+locLogs.get(i).longitude);
-            color = (int) (Math.sqrt(speed)/highSqrt*20);
+            int color = (int) (Math.sqrt(speed)/highSqrt*20);
             if (color > 20) color = 20; if(color < 0) color = 0;
             if (isWalk) color = 20 - color; // red to green (drive), green to red (walk)
             int colorCode = speedColor[color];
