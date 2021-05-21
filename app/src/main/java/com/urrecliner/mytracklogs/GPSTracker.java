@@ -71,7 +71,7 @@ class GPSTracker extends Service implements LocationListener {
         this.location = location;
         GPSLat = location.getLatitude();
         GPSLng = location.getLongitude();
-        MainActivity.locationUpdatedByGPSTracker(GPSLat, GPSLng);
+        MainActivity.newGPSArrived(GPSLat, GPSLng);
     }
 
     @Override

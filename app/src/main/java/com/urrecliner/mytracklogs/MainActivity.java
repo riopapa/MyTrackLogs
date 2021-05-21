@@ -2,17 +2,13 @@ package com.urrecliner.mytracklogs;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,8 +16,6 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -74,7 +68,7 @@ import static com.urrecliner.mytracklogs.Vars.utils;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     final static String logID = "Main";
-    private static Handler updateMarker, notifyAction;
+    private static Handler addTrackMarker, notifyAction;
     FloatingActionButton fabGoStop, fabPauseRestart;
     long prevLogTime, elapsedTime;
     TextView tvStartDate, tvStartTime, tvMeter, tvMinutes;
@@ -109,15 +103,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
         utils = new Utils();
         mapUtils = new MapUtils();
-        showMarker = new ShowMarker();
 //        Vars.generateColor(); // only when want to generate color table from low speed to high speed
-        askPermission();
+        Permission.ask(this, this);
+        initiate();
     }
 
     void initiate() {
 
         markerLatLng = new ArrayList<>();
-//        markerLatLng.add(new LatLng(0,0)); markerLatLng.add(new LatLng(0,0));
+        markerLatLng.add(new LatLng(nowLatitude, nowLongitude));    // add two dummy
+        markerLatLng.add(new LatLng(nowLatitude, nowLongitude));
         tvStartDate = findViewById(R.id.startDate);
         tvStartTime = findViewById(R.id.startTime);
         tvMeter = findViewById(R.id.meter);
@@ -156,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         ab.setIcon(R.mipmap.my_face) ;
         ab.setDisplayUseLogoEnabled(true) ;
         ab.setDisplayShowHomeEnabled(true) ;
-        updateMarker = new Handler() {
+        addTrackMarker = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 LatLng latLng = (LatLng) msg.obj;
@@ -182,11 +177,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             nowLatitude = gpsTracker.getGPSLat();
             nowLongitude = gpsTracker.getGPSLng();
         }
-        latLngPos = new ArrayList<>(); latSVs = new ArrayList<>(); lngSVs = new ArrayList<>();
-        latQues = new ArrayList<>(); lonQues = new ArrayList<>();
-        startLat = gpsTracker.getGPSLat();
-        startLng = gpsTracker.getGPSLng();
-        for (int i = 0; i < QUE_COUNT; i++) { latSVs.add(startLat); lngSVs.add(startLng); }
 //        gpsTracker.stopGPSUpdate();
         utils.deleteOldLogFiles();
     }
@@ -194,6 +184,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void startClicked(View v) {
         isWalk = v.getTag().equals("W");
         mainDialog.dismiss();
+        latLngPos = new ArrayList<>(); latSVs = new ArrayList<>(); lngSVs = new ArrayList<>();
+        latQues = new ArrayList<>(); lonQues = new ArrayList<>();
+        startLat = gpsTracker.getGPSLat();
+        startLng = gpsTracker.getGPSLng();
+        for (int i = 0; i < QUE_COUNT; i++) { latSVs.add(startLat); lngSVs.add(startLng); }
+
         go_Clicked();
     }
 
@@ -240,6 +236,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         highSqrt = (float) ((isWalk) ? Math.sqrt(HIGH_SPEED_WALK): Math.sqrt(HIGH_SPEED_DRIVE));
         showMarker = new ShowMarker();
         showMarker.init(mActivity, mainMap);
+        showMarker.drawStart(startLat, startLng, false);
     }
 
     void finishTrackLog() {
@@ -272,8 +269,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         new CountDownTimer(180*QUE_COUNT, 100) {
             public void onTick(long millisUntilFinished) {
                 startLat += dLat; startLng += dLng;
-                Message msg = updateMarker.obtainMessage(1, new LatLng(startLat, startLng));
-                updateMarker.sendMessage(msg);
+                Message msg = addTrackMarker.obtainMessage(1, new LatLng(startLat, startLng));
+                addTrackMarker.sendMessage(msg);
             }
             public void onFinish() {
                 utils.log(logID, "finish "+startLat+"x"+ startLng);
@@ -293,14 +290,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     double sMaxSpeed = -9999f, sMinSpeed = 99999f;
     void locationChanged(boolean isActive, double latitude, double longitude) {
 
-        if (GPSUpdateCount++ < 5) {
-            mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), mapScale));
-//            showMarker.init(mActivity, mainMap);
+        GPSUpdateCount++;
+        if (GPSUpdateCount < 4) {
+            startLat = latitude; startLng = longitude;
+            locSouth = latitude; locNorth = latitude; locWest = longitude; locEast = longitude;
+//            mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), mapScale));
+            showMarker.drawStart(startLat, startLng, false);
             return;
-        }
-        if (GPSUpdateCount == 5) {  // ignore first 5 location change events
+        } else if (GPSUpdateCount == 4)
             initNewTrackingValues();
-        }
+
+//        utils.log("GPS "+GPSUpdateCount,latitude+" x "+longitude);
         long nowTime = System.currentTimeMillis();
         long deltaTime = nowTime - prevLogTime;
         String s;
@@ -355,7 +355,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         dbCount++;
     }
 
-
     void initNewTrackingValues() {
         startTime = System.currentTimeMillis();
         beginTime = startTime;
@@ -377,12 +376,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         showMarker.drawStart(startLat, startLng, false);
         String s = (isWalk) ? "Walk":"Drive" + " start @ "+sdfDateDayTime.format(startTime) +
                 " speedCheck ("+lowSpeed+"~"+highSpeed+")";
-        utils.log("Start ",s);
-        utils.log2Download("Start ",s);
-        Toast.makeText(getApplicationContext(),s, Toast.LENGTH_LONG).show();
+        utils.log("Start",s);
+        utils.log2Download("Start",s);
+        Toast.makeText(mContext,s, Toast.LENGTH_LONG).show();
         databaseIO.trackInsert(startTime);
         databaseIO.logInsert(startTime, 0, 0);
-        locSouth = 999; locNorth = -999; locWest = 999; locEast = -999;
+        locSouth = prevLatitude; locNorth = prevLatitude;
+        locWest = prevLongitude; locEast = prevLongitude;
     }
 
     void adjustPosition() {
@@ -406,13 +406,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateNotification(ACTION_HIDE_CONFIRM);
         mapScale = 18f;
         utils.log(logID, "MapReady "+ nowLatitude +" x "+ nowLongitude+" with scale:"+mapScale);
+        locSouth = nowLatitude; locNorth = nowLatitude; locWest = nowLongitude; locEast = nowLongitude;
         mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(nowLatitude, nowLongitude), mapScale));
+        showMarker = new ShowMarker();
         showMarker.init(mActivity, mainMap);
     }
 
-    static void locationUpdatedByGPSTracker(Double latitude, Double longitude) {
-        Message msg = updateMarker.obtainMessage(0, new LatLng(latitude, longitude));
-        updateMarker.sendMessage(msg);
+    static void newGPSArrived(Double latitude, Double longitude) {
+        Message msg = addTrackMarker.obtainMessage(0, new LatLng(latitude, longitude));
+        addTrackMarker.sendMessage(msg);
     }
 
     static void notificationBarTouched(int buttonType) {
@@ -551,91 +553,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     notifyAction.sendEmptyMessage(NOTIFICATION_BAR_CONFIRMED_STOP);
                 });
         builder.setPositiveButton("No, Continue ",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                    }
+                (dialog, which) -> {
                 });
         AlertDialog dialog = builder.create();
         dialog.show();
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
     }
 
-    void reDrawMap() {
-        if (locNorth > -90) {
-            float scale = calcMapScale();
-            mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                    new LatLng((locNorth + locSouth) / 2, (locEast + locWest) / 2), scale - 0.15f));
-        }
-    }
     @Override
     public void onResume() {
         super.onResume();
-        if (mainMap == null)
-            initiate();
-        else
-            reDrawMap();
-    }
-
-    // ↓ ↓ ↓ P E R M I S S I O N    RELATED /////// ↓ ↓ ↓ ↓
-    private final static int ALL_PERMISSIONS_RESULT = 101;
-    ArrayList permissionsToRequest;
-    ArrayList<String> permissionsRejected = new ArrayList<>();
-    String [] permissions;
-
-    private void askPermission() {
-        try {
-            PackageInfo info = getPackageManager().getPackageInfo(getApplicationContext().getPackageName(), PackageManager.GET_PERMISSIONS);
-            permissions = info.requestedPermissions;//This array contain
-        } catch (Exception e) {
-            Log.e("Permission", "No Permission "+e.toString());
-        }
-
-        permissionsToRequest = findUnAskedPermissions();
-        if (permissionsToRequest.size() != 0) {
-            requestPermissions((String[]) permissionsToRequest.toArray(new String[0]),
-                    ALL_PERMISSIONS_RESULT);
+        if (mainMap != null) {
+            mapScale = calcMapScale();
+            mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                    new LatLng(nowLatitude, nowLongitude), mapScale));
         }
     }
 
-    private ArrayList findUnAskedPermissions() {
-        ArrayList <String> result = new ArrayList<String>();
-        for (String perm : permissions) if (hasPermission(perm)) result.add(perm);
-        return result;
-    }
-    private boolean hasPermission(@NonNull String permission) {
-        return (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == ALL_PERMISSIONS_RESULT) {
-            for (Object perms : permissionsToRequest) {
-                if (hasPermission((String) perms)) {
-                    permissionsRejected.add((String) perms);
-                }
-            }
-            if (permissionsRejected.size() > 0) {
-                if (shouldShowRequestPermissionRationale(permissionsRejected.get(0))) {
-                    String msg = "These permissions are mandatory for the application. Please allow access.";
-                    showDialog(msg);
-                }
-            }
-            else
-                Toast.makeText(mContext, "Permissions not granted.", Toast.LENGTH_LONG).show();
-        }
-    }
-    private void showDialog(String msg) {
-        showMessageOKCancel(msg,
-                (dialog, which) -> requestPermissions(permissionsRejected.toArray(
-                        new String[0]), ALL_PERMISSIONS_RESULT));
-    }
-    private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
-        new android.app.AlertDialog.Builder(mActivity)
-                .setMessage(message)
-                .setPositiveButton("OK", okListener)
-                .setNegativeButton("Cancel", null)
-                .create()
-                .show();
-    }
-// ↑ ↑ ↑ ↑ P E R M I S S I O N    RELATED /////// ↑ ↑ ↑
 }
